@@ -108,4 +108,3 @@ create-admin.js   → script tạo tài khoản quản trị
 Các phần có thể mở rộng thêm sau: giới hạn theo IP để chống gian lận nâng cao,
 kiểm tra Referer từ nhà cung cấp, cấp độ (Level) mở khoá nhiệm vụ, hệ thống
 mời bạn bè, tích hợp cổng thanh toán tự động cho rút tiền.
-

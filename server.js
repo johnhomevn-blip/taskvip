@@ -18,10 +18,10 @@ app.use(session({
   cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
 }));
 
-// Nap thong tin user hien tai (neu da dang nhap) cho moi request
-app.use((req, res, next) => {
+// Nap thong tin user hien tai
+app.use(async (req, res, next) => {
   if (req.session.userId) {
-    req.user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+    req.user = await db.get('SELECT * FROM users WHERE id = $1', [req.session.userId]);
   }
   res.locals.currentUser = req.user || null;
   next();
@@ -37,22 +37,22 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Routes cong khai (dang ky, dang nhap) + verify (nha cung cap goi ve, khong dang nhap)
+// Routes cong khai
 app.use('/', require('./routes/auth'));
-app.use('/', require('./routes/verify'));
 app.use('/', require('./routes/verify'));
 
 // Route tao admin lan dau - XOA DONG NAY SAU KHI DA TAO XONG ADMIN
-app.get('/setup-admin-taskvip', (req, res) => {
-  const existing = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();
+app.get('/setup-admin-taskvip', async (req, res) => {
+  const existing = await db.get("SELECT id FROM users WHERE username = 'admin'");
   if (existing) return res.send('Admin đã tồn tại rồi, vào /login để đăng nhập.');
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('Admin@2026', 10);
-  db.prepare('INSERT INTO users (username, password_hash, balance, exp, level, is_admin, created_at) VALUES (?,?,0,0,1,1,?)').run('admin', hash, Date.now());
+  await db.run(
+    'INSERT INTO users (username, password_hash, balance, exp, level, is_admin, created_at) VALUES ($1,$2,0,0,1,1,$3)',
+    ['admin', hash, Date.now()]
+  );
   res.send('Tạo admin thành công! Vào /login đăng nhập bằng admin / Admin@2026');
 });
-app.use('/', require('./routes/verify'));
-app.use('/', require('./routes/verify'));
 
 // Routes can dang nhap
 app.use('/', requireAuth, require('./routes/tasks'));
