@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>TaskVip - Quản trị</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Quản trị</div>
+    <div class="right"><a href="/tasks">Về trang nhiệm vụ</a></div>
+  </div>
+
+  <div class="container">
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+
+    <h2>Thêm nhiệm vụ mới</h2>
+    <form class="inline" method="POST" action="/admin/tasks">
+      <input name="name" placeholder="Tên nhiệm vụ" required>
+      <select name="provider">
+        <option value="link4m">link4m</option>
+        <option value="uptolink">uptolink</option>
+      </select>
+      <input name="target_url" placeholder="URL đích thật (trang bạn muốn quảng bá)" required style="min-width:260px;">
+      <input name="reward" type="number" placeholder="Thưởng (đ)" required>
+      <input name="exp_reward" type="number" placeholder="Exp" value="1">
+      <input name="min_seconds" type="number" placeholder="Giây tối thiểu" value="15">
+      <input name="daily_limit" type="number" placeholder="Lượt/ngày" value="2">
+      <button class="btn" style="width:auto;padding:8px 16px;" type="submit">Thêm</button>
+    </form>
+
+    <h3>Danh sách nhiệm vụ</h3>
+    <table>
+      <tr><th>Tên</th><th>NCC</th><th>Thưởng</th><th>Lượt/ngày</th><th>Trạng thái</th><th></th></tr>
+      <% tasks.forEach(t => { %>
+        <tr>
+          <td><%= t.name %></td>
+          <td><%= t.provider %></td>
+          <td><%= t.reward.toLocaleString('vi-VN') %>đ</td>
+          <td><%= t.daily_limit %></td>
+          <td><%= t.active ? 'Đang bật' : 'Đã tắt' %></td>
+          <td>
+            <form method="POST" action="/admin/tasks/<%= t.id %>/toggle">
+              <button type="submit" style="border:none;background:none;color:#7c3aed;cursor:pointer;">
+                <%= t.active ? 'Tắt' : 'Bật' %>
+              </button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+
+    <div class="section">
+      <h3>Yêu cầu rút tiền đang chờ duyệt</h3>
+      <table>
+        <tr><th>User</th><th>Số tiền</th><th>Phương thức</th><th>Thông tin</th><th></th></tr>
+        <% withdrawals.forEach(w => { %>
+          <tr>
+            <td><%= w.username %></td>
+            <td><%= w.amount.toLocaleString('vi-VN') %>đ</td>
+            <td><%= w.method %></td>
+            <td><%= w.detail %></td>
+            <td style="display:flex; gap:8px;">
+              <form method="POST" action="/admin/withdrawals/<%= w.id %>/approve">
+                <button type="submit" style="border:none;background:#1e824c;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;">Duyệt</button>
+              </form>
+              <form method="POST" action="/admin/withdrawals/<%= w.id %>/reject">
+                <button type="submit" style="border:none;background:#c0392b;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;">Từ chối</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </table>
+      <% if (withdrawals.length === 0) { %><p>Không có yêu cầu nào đang chờ.</p><% } %>
+    </div>
+  </div>
+</body>
+</html>

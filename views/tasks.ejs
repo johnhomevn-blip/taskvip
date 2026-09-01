@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>TaskVip - Nhiệm vụ</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">TaskVip</div>
+    <div class="right">
+      <span><%= user.username %> · Level <%= user.level %></span>
+      <span><b><%= user.balance.toLocaleString('vi-VN') %>đ</b></span>
+      <a href="/wallet">Ví</a>
+      <% if (user.is_admin) { %><a href="/admin">Quản trị</a><% } %>
+      <form method="POST" action="/logout" style="display:inline">
+        <button type="submit" style="background:none;border:none;color:#7c3aed;cursor:pointer;">Đăng xuất</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="container">
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <% if (typeof done !== 'undefined') { %><div class="ok">Nhiệm vụ đã hoàn thành, tiền đã được cộng vào ví!</div><% } %>
+
+    <div class="grid">
+      <% tasks.forEach(task => { %>
+        <div class="card">
+          <div class="card-title">
+            <span><%= task.name %></span>
+            <span class="badge"><%= task.provider %></span>
+          </div>
+          <form method="POST" action="/tasks/<%= task.id %>/start">
+            <button class="btn" <%= task.remaining <= 0 ? 'disabled' : '' %>>
+              <%= task.remaining <= 0 ? 'Hết lượt hôm nay' : 'Thực hiện' %>
+            </button>
+          </form>
+          <div class="stats">
+            <div><b><%= task.reward.toLocaleString('vi-VN') %>đ</b>Thu nhập</div>
+            <div><b><%= task.exp_reward %></b>Exp</div>
+            <div><b><%= task.remaining %>/<%= task.daily_limit %></b>Lượt còn lại</div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <% if (tasks.length === 0) { %>
+      <p>Chưa có nhiệm vụ nào. Vào trang Quản trị để thêm nhiệm vụ.</p>
+    <% } %>
+  </div>
+</body>
+</html>

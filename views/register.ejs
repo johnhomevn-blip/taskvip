@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đăng ký - TaskVip</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-box">
+    <h2>Tạo tài khoản</h2>
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <form method="POST" action="/register">
+      <label>Tên đăng nhập</label>
+      <input name="username" required>
+      <label>Mật khẩu (tối thiểu 6 ký tự)</label>
+      <input type="password" name="password" required>
+      <label>Nhập lại mật khẩu</label>
+      <input type="password" name="password2" required>
+      <button class="btn" type="submit">Đăng ký</button>
+    </form>
+    <p style="text-align:center; margin-top:14px; font-size:14px;">
+      Đã có tài khoản? <a href="/login">Đăng nhập</a>
+    </p>
+  </div>
+</body>
+</html>

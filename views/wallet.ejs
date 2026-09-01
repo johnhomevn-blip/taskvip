@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>TaskVip - Ví của tôi</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">TaskVip</div>
+    <div class="right">
+      <a href="/tasks">Nhiệm vụ</a>
+      <span><b><%= user.balance.toLocaleString('vi-VN') %>đ</b></span>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Rút tiền</h2>
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <% if (ok) { %><div class="ok">Yêu cầu rút tiền đã được gửi, chờ quản trị viên duyệt.</div><% } %>
+
+    <div class="card" style="max-width:420px;">
+      <form method="POST" action="/wallet/withdraw">
+        <label>Số tiền muốn rút (đ)</label>
+        <input name="amount" type="number" min="20000" required style="width:100%;padding:10px;margin:6px 0 14px;border:1px solid #ddd;border-radius:8px;">
+
+        <label>Phương thức</label>
+        <select name="method" style="width:100%;padding:10px;margin:6px 0 14px;border:1px solid #ddd;border-radius:8px;">
+          <option value="momo">Ví Momo</option>
+          <option value="bank">Chuyển khoản ngân hàng</option>
+          <option value="phonecard">Thẻ cào điện thoại</option>
+        </select>
+
+        <label>Thông tin nhận tiền (số Momo / số TK + tên ngân hàng / nhà mạng + mệnh giá)</label>
+        <input name="detail" required style="width:100%;padding:10px;margin:6px 0 14px;border:1px solid #ddd;border-radius:8px;">
+
+        <button class="btn" type="submit">Gửi yêu cầu rút tiền</button>
+      </form>
+    </div>
+
+    <div class="section">
+      <h3>Lịch sử rút tiền</h3>
+      <table>
+        <tr><th>Ngày</th><th>Số tiền</th><th>Phương thức</th><th>Trạng thái</th></tr>
+        <% history.forEach(h => { %>
+          <tr>
+            <td><%= new Date(h.created_at).toLocaleString('vi-VN') %></td>
+            <td><%= h.amount.toLocaleString('vi-VN') %>đ</td>
+            <td><%= h.method %></td>
+            <td><%= h.status %></td>
+          </tr>
+        <% }) %>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
