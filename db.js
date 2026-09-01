@@ -1,7 +1,15 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
-const db = new Database(path.join(__dirname, 'db', 'data.sqlite'));
+// Tu tao thu muc "db" neu chua co (GitHub khong luu duoc thu muc rong
+// nen khi upload code len co the bi thieu thu muc nay)
+const dbDir = path.join(__dirname, 'db');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new Database(path.join(dbDir, 'data.sqlite'));
 db.pragma('journal_mode = WAL');
 
 db.exec(`
