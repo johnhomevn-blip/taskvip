@@ -42,14 +42,18 @@ app.use('/', require('./routes/auth'));
 app.use('/', require('./routes/verify'));
 
 // Route tao admin lan dau - XOA DONG NAY SAU KHI DA TAO XONG ADMIN
-app.get('/setup-admin-taskvip', (req, res) => {
-  const existing = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();
+app.get('/setup-admin-taskvip', async (req, res) => {
+  const existing = await db.get("SELECT id FROM users WHERE username = 'admin'");
   if (existing) return res.send('Admin đã tồn tại rồi, vào /login để đăng nhập.');
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('Admin@2026', 10);
-  db.prepare('INSERT INTO users (username, password_hash, balance, exp, level, is_admin, created_at) VALUES (?,?,0,0,1,1,?)').run('admin', hash, Date.now());
+  await db.run(
+    'INSERT INTO users (username, password_hash, balance, exp, level, is_admin, created_at) VALUES ($1,$2,0,0,1,1,$3)',
+    ['admin', hash, Date.now()]
+  );
   res.send('Tạo admin thành công! Vào /login đăng nhập bằng admin / Admin@2026');
 });
+
 // Routes can dang nhap
 app.use('/', requireAuth, require('./routes/tasks'));
 app.use('/', requireAuth, require('./routes/wallet'));
