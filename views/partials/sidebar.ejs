@@ -1,0 +1,65 @@
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div>
+      <h1>⚡ TaskVip</h1>
+      <p>Kiếm tiền online</p>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-info">
+      <div class="user-avatar"><%= user.username[0].toUpperCase() %></div>
+      <div>
+        <div class="user-name"><%= user.username %></div>
+        <span class="level-tag" style="background:<%= user.levelTag.bg %>;color:#fff">
+          <%= user.levelTag.emoji %> Lv.<%= user.level %> <%= user.levelTag.label %>
+        </span>
+      </div>
+    </div>
+    <div class="coins-row">
+      <div class="coin-pill ncoin">🪙 <%= user.ncoin.toLocaleString('vi-VN') %>N</div>
+      <div class="coin-pill vcoin">💎 <%= user.vcoin.toLocaleString('vi-VN') %>V</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Tổng quan</div>
+    <a href="/dashboard" class="nav-item <%= page==='dashboard'?'active':'' %>">
+      <span class="ni">📊</span> Dashboard
+    </a>
+    <div class="nav-section">Kiếm tiền</div>
+    <a href="/tasks" class="nav-item <%= page==='tasks'?'active':'' %>">
+      <span class="ni">⚡</span> Nhiệm Vụ
+    </a>
+    <a href="/shop" class="nav-item <%= page==='shop'?'active':'' %>">
+      <span class="ni">🛍️</span> Quy Đổi
+    </a>
+    <a href="/ranking" class="nav-item <%= page==='ranking'?'active':'' %>">
+      <span class="ni">🏆</span> Đua Top
+    </a>
+    <div class="nav-section">Tài chính</div>
+    <a href="/wallet" class="nav-item <%= page==='wallet'?'active':'' %>">
+      <span class="ni">💸</span> Rút Tiền
+    </a>
+    <a href="/topup" class="nav-item <%= page==='topup'?'active':'' %>">
+      <span class="ni">💎</span> Nạp Vcoin
+    </a>
+    <a href="/history" class="nav-item <%= page==='history'?'active':'' %>">
+      <span class="ni">📋</span> Lịch Sử
+    </a>
+    <div class="nav-section">Cá nhân</div>
+    <a href="/account" class="nav-item <%= page==='account'?'active':'' %>">
+      <span class="ni">👤</span> Tài Khoản
+    </a>
+    <% if (user.is_admin) { %>
+    <div class="nav-section">Quản trị</div>
+    <a href="/admin" class="nav-item <%= page==='admin'?'active':'' %>">
+      <span class="ni">⚙️</span> Admin Panel
+    </a>
+    <% } %>
+  </nav>
+  <div class="sidebar-bottom">
+    <form method="POST" action="/logout">
+      <button type="submit" class="btn-logout">🚪 Đăng xuất</button>
+    </form>
+  </div>
+</div>
+<div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>

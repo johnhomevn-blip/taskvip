@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lịch Sử - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'history',user}) %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">📋 Lịch Sử Giao Dịch</div></div>
+  <div class="page">
+    <div class="alert alert-info">ℹ️ Lịch sử giao dịch sẽ tự động xóa sau 30 ngày để tiết kiệm dung lượng.</div>
+    <div class="card">
+      <table>
+        <tr><th>Thời gian</th><th>Loại</th><th>Số lượng</th><th>Mô tả</th></tr>
+        <%transactions.forEach(t=>{%>
+        <tr>
+          <td style="color:var(--text2)"><%=new Date(parseInt(t.created_at)).toLocaleString('vi-VN')%></td>
+          <td><%if(t.type==='earn'){%><span class="badge badge-success">⚡ Vượt link</span>
+          <%}else if(t.type==='withdraw'){%><span class="badge badge-warning">💸 Rút tiền</span>
+          <%}else if(t.type==='topup'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">💎 Nạp coin</span>
+          <%}else if(t.type==='buy'){%><span class="badge badge-danger">🛍️ Mua hàng</span>
+          <%}else{%><span class="badge"><%=t.type%></span><%}%></td>
+          <td style="font-weight:600;color:<%=t.type==='earn'||t.type==='topup'?'#10b981':'#ef4444'%>">
+            <%=t.type==='earn'||t.type==='topup'?'+':'-'%><%=t.amount.toLocaleString('vi-VN')%>
+            <%=t.coin_type==='vcoin'?'V':'N'%>
+          </td>
+          <td style="color:var(--text2);font-size:12px"><%=t.description%></td>
+        </tr>
+        <%})%>
+      </table>
+      <%if(transactions.length===0){%><div style="text-align:center;padding:30px;color:var(--text2)">Chưa có giao dịch nào</div><%}%>
+    </div>
+  </div>
+</div>
+</body></html>

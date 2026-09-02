@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nạp Vcoin - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'topup',user}) %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">💎 Nạp Vcoin</div></div>
+  <div class="page">
+    <%if(ok){%><div class="alert alert-success">✅ Yêu cầu nạp đã gửi!</div><%}%>
+    <%if(notice){%><div class="alert alert-info">ℹ️ <%=notice%></div><%}%>
+
+    <div style="background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(124,58,237,0.15));border:1px solid rgba(96,165,250,0.2);border-radius:14px;padding:20px;margin-bottom:20px;text-align:center">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Vcoin hiện có</div>
+      <div style="font-size:36px;font-weight:800;color:#60a5fa">💎 <%=user.vcoin.toLocaleString('vi-VN')%></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📋 Hướng dẫn nạp Vcoin</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.8">
+          <div style="margin-bottom:8px">1️⃣ Chuyển khoản đến tài khoản admin</div>
+          <div style="margin-bottom:8px">2️⃣ Ghi nội dung: <b style="color:var(--text)">NapVcoin_<%=user.username%></b></div>
+          <div style="margin-bottom:8px">3️⃣ Liên hệ admin gửi bill chuyển khoản</div>
+          <div>4️⃣ Admin xác nhận và cộng Vcoin trong 15 phút</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;margin-top:14px;font-size:13px">
+          <div style="color:var(--text2);margin-bottom:6px">Tỷ lệ quy đổi</div>
+          <div style="font-weight:700;color:#60a5fa">1.000đ = 1 Vcoin</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📜 Lịch sử nạp Vcoin</div>
+        <table>
+          <tr><th>Ngày</th><th>Số lượng</th><th>Ghi chú</th></tr>
+          <%history.forEach(h=>{%>
+          <tr>
+            <td><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN')%></td>
+            <td style="color:#60a5fa;font-weight:600">+<%=h.amount.toLocaleString('vi-VN')%>V</td>
+            <td style="color:var(--text2)"><%=h.note||'—'%></td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(history.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Chưa có lịch sử nạp</div><%}%>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

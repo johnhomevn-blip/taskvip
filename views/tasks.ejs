@@ -1,51 +1,92 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>TaskVip - Nhiệm vụ</title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-  <div class="topbar">
-    <div class="brand">TaskVip</div>
-    <div class="right">
-      <span><%= user.username %> · Level <%= user.level %></span>
-      <span><b><%= user.balance.toLocaleString('vi-VN') %>đ</b></span>
-      <a href="/wallet">Ví</a>
-      <% if (user.is_admin) { %><a href="/admin">Quản trị</a><% } %>
-      <form method="POST" action="/logout" style="display:inline">
-        <button type="submit" style="background:none;border:none;color:#7c3aed;cursor:pointer;">Đăng xuất</button>
-      </form>
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nhiệm Vụ - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'tasks',user}) %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">⚡ Nhiệm Vụ Vượt Link</div></div>
+  <div class="page">
+    <%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
+    <%if(done){%><div class="alert alert-success">✅ Hoàn thành! Ncoin đã được cộng vào tài khoản.</div><%}%>
+    <%announcements.forEach(a=>{%><div class="announce">📢 <%=a.content%></div><%})%>
+
+    <div class="multiplier-bar">
+      <div>
+        <div class="mult-lbl">Hệ số nhân hiện tại</div>
+        <div class="mult-val">×<%=multiplier%></div>
+        <div class="mult-lbl">Reset sau: <span class="countdown-txt" id="cd"></span></div>
+      </div>
+      <div style="text-align:right;font-size:12px;color:var(--text2)">
+        <div>0:00 GMT+7 = ×1.07</div>
+        <div style="margin-top:3px">Giảm 0.005 mỗi giờ</div>
+      </div>
     </div>
-  </div>
 
-  <div class="container">
-    <% if (error) { %><div class="error"><%= error %></div><% } %>
-    <% if (typeof done !== 'undefined') { %><div class="ok">Nhiệm vụ đã hoàn thành, tiền đã được cộng vào ví!</div><% } %>
-
-    <div class="grid">
-      <% tasks.forEach(task => { %>
-        <div class="card">
-          <div class="card-title">
-            <span><%= task.name %></span>
-            <span class="badge"><%= task.provider %></span>
+    <% grouped.forEach(cat=>{if(cat.tasks.length===0)return; %>
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <span><%=cat.icon%></span> <%=cat.name%>
+      </div>
+      <div class="task-grid">
+        <%cat.tasks.forEach(task=>{%>
+        <div class="task-card">
+          <div class="task-head">
+            <div class="task-name"><%=task.name%></div>
+            <span class="provider-tag"><%=task.provider%></span>
           </div>
-          <form method="POST" action="/tasks/<%= task.id %>/start">
-            <button class="btn" <%= task.remaining <= 0 ? 'disabled' : '' %>>
-              <%= task.remaining <= 0 ? 'Hết lượt hôm nay' : 'Thực hiện' %>
+          <form method="POST" action="/tasks/<%=task.id%>/start">
+            <input type="hidden" name="fingerprint" class="fp-input">
+            <button class="btn-task" <%=task.remaining<=0?'disabled':''%>>
+              <%=task.remaining<=0?'🔒 Hết lượt hôm nay':'▶ Lấy link vượt'%>
             </button>
           </form>
-          <div class="stats">
-            <div><b><%= task.reward.toLocaleString('vi-VN') %>đ</b>Thu nhập</div>
-            <div><b><%= task.exp_reward %></b>Exp</div>
-            <div><b><%= task.remaining %>/<%= task.daily_limit %></b>Lượt còn lại</div>
+          <div class="task-footer">
+            <div class="task-stat-item"><div class="tsv">🪙<%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin nhận</div></div>
+            <div class="task-stat-item"><div class="tsv">⭐<%=task.exp_reward%></div><div class="tsl">EXP</div></div>
+            <div class="task-stat-item"><div class="tsv"><%=task.remaining%>/<%=task.daily_limit%></div><div class="tsl">Lượt còn</div></div>
           </div>
         </div>
-      <% }) %>
+        <%})%>
+      </div>
     </div>
-    <% if (tasks.length === 0) { %>
-      <p>Chưa có nhiệm vụ nào. Vào trang Quản trị để thêm nhiệm vụ.</p>
-    <% } %>
+    <%})%>
+
+    <% if(uncategorized.length>0){%>
+    <div class="task-grid">
+      <%uncategorized.forEach(task=>{%>
+      <div class="task-card">
+        <div class="task-head"><div class="task-name"><%=task.name%></div><span class="provider-tag"><%=task.provider%></span></div>
+        <form method="POST" action="/tasks/<%=task.id%>/start">
+          <input type="hidden" name="fingerprint" class="fp-input">
+          <button class="btn-task" <%=task.remaining<=0?'disabled':''%>><%=task.remaining<=0?'🔒 Hết lượt':'▶ Lấy link vượt'%></button>
+        </form>
+        <div class="task-footer">
+          <div class="task-stat-item"><div class="tsv">🪙<%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin</div></div>
+          <div class="task-stat-item"><div class="tsv">⭐<%=task.exp_reward%></div><div class="tsl">EXP</div></div>
+          <div class="task-stat-item"><div class="tsv"><%=task.remaining%>/<%=task.daily_limit%></div><div class="tsl">Lượt còn</div></div>
+        </div>
+      </div>
+      <%})%>
+    </div>
+    <%}%>
+
+    <%if(grouped.every(g=>g.tasks.length===0)&&uncategorized.length===0){%>
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:40px;margin-bottom:12px">🔍</div>
+      <div style="color:var(--text2)">Chưa có nhiệm vụ nào. Quay lại sau nhé!</div>
+    </div>
+    <%}%>
   </div>
-</body>
-</html>
+</div>
+<script>
+let s=<%=secondsUntilReset%>;
+const el=document.getElementById('cd');
+function fmt(x){const h=Math.floor(x/3600),m=Math.floor((x%3600)/60),sec=x%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
+el.textContent=fmt(s);setInterval(()=>{if(s>0){s--;el.textContent=fmt(s);}},1000);
+const fp=[navigator.userAgent,screen.width+'x'+screen.height,navigator.language].join('|');
+const fpVal=btoa(fp).slice(0,32);
+document.querySelectorAll('.fp-input').forEach(el=>el.value=fpVal);
+</script>
+</body></html>

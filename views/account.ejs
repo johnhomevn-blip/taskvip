@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tài Khoản - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'account',user}) %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">👤 Tài Khoản</div></div>
+  <div class="page">
+    <%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
+    <%if(ok){%><div class="alert alert-success">✅ Đổi mật khẩu thành công!</div><%}%>
+
+    <div class="grid2">
+      <!-- THONG TIN -->
+      <div class="card">
+        <div class="card-title">👤 Thông tin tài khoản</div>
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 12px">
+            <%=user.username[0].toUpperCase()%>
+          </div>
+          <div style="font-size:18px;font-weight:700"><%=user.username%></div>
+          <span class="level-tag" style="background:<%=tag.bg%>;color:#fff;font-size:13px;padding:4px 14px;margin-top:6px;display:inline-flex">
+            <%=tag.emoji%> Level <%=levelInfo.level%> — <%=tag.label%>
+          </span>
+        </div>
+
+        <div class="exp-bar-wrap" style="margin-bottom:16px">
+          <div class="exp-bar-info">
+            <span>Level <%=levelInfo.level%></span>
+            <span><%=levelInfo.expInLevel.toLocaleString('vi-VN')%> / <%=levelInfo.expNeeded>0?levelInfo.expNeeded.toLocaleString('vi-VN'):'MAX'%> EXP</span>
+            <%if(levelInfo.level<50){%><span>Level <%=levelInfo.level+1%></span><%}%>
+          </div>
+          <div class="exp-bar-track">
+            <div class="exp-bar-fill" style="width:<%=levelInfo.expNeeded>0?Math.min(100,Math.round(levelInfo.expInLevel/levelInfo.expNeeded*100)):100%>%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">Tổng <%=user.exp.toLocaleString('vi-VN')%> EXP</div>
+        </div>
+
+        <div style="font-size:13px;color:var(--text2)">
+          <div style="padding:8px 0;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between">
+            <span>🪙 Ncoin</span><b style="color:#fbbf24"><%=user.ncoin.toLocaleString('vi-VN')%></b>
+          </div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between">
+            <span>💎 Vcoin</span><b style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN')%></b>
+          </div>
+          <div style="padding:8px 0;display:flex;justify-content:space-between">
+            <span>📅 Ngày tham gia</span><b><%=new Date(parseInt(user.created_at)).toLocaleDateString('vi-VN')%></b>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOI MAT KHAU -->
+      <div class="card">
+        <div class="card-title">🔑 Đổi mật khẩu</div>
+        <form method="POST" action="/account/password">
+          <div class="fg"><label>Mật khẩu hiện tại</label><input type="password" name="old_password" required placeholder="Nhập mật khẩu hiện tại"></div>
+          <div class="fg"><label>Mật khẩu mới</label><input type="password" name="new_password" required placeholder="Tối thiểu 6 ký tự"></div>
+          <div class="fg"><label>Nhập lại mật khẩu mới</label><input type="password" name="new_password2" required placeholder="Nhập lại mật khẩu mới"></div>
+          <button class="btn btn-primary btn-full" type="submit">🔑 Đổi mật khẩu</button>
+        </form>
+
+        <div style="margin-top:20px">
+          <div class="card-title">🏅 Bảng level</div>
+          <div style="font-size:12px">
+            <%[{l:'1-9',e:'🔵',n:'Rookie'},{l:'10-19',e:'🟢',n:'Silver'},{l:'20-29',e:'⭐',n:'Gold'},{l:'30-39',e:'🔥',n:'Platinum'},{l:'40-49',e:'💎',n:'Diamond'},{l:'50',e:'👑',n:'Legend'}].forEach(lv=>{%>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--card-border)">
+              <span><%=lv.e%></span>
+              <span style="color:var(--text2)">Lv.<%=lv.l%></span>
+              <span style="font-weight:600"><%=lv.n%></span>
+            </div>
+            <%})%>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lịch sử IP - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'admin',user}) %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar">
+    <div class="topbar-title">🔍 IP của <%= target.username %></div>
+    <a href="/admin#users" class="btn btn-outline btn-sm">← Quay lại</a>
+  </div>
+  <div class="page">
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;gap:16px;font-size:13px">
+        <div>👤 <b><%=target.username%></b></div>
+        <div>🌐 IP đăng ký: <b style="color:var(--accent2)"><%=target.reg_ip||'—'%></b></div>
+        <div>📱 Fingerprint: <b style="color:var(--text2);font-size:11px"><%=target.reg_fingerprint||'—'%></b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🌐 Lịch sử IP vượt link</div>
+      <table>
+        <tr><th>Địa chỉ IP</th><th>Lần đầu</th><th>Lần cuối</th><th>Số lần thử</th><th>Hoàn thành</th><th>Tài khoản khác dùng IP này</th></tr>
+        <%ips.forEach(ip=>{%>
+        <tr>
+          <td style="font-family:monospace;color:var(--accent2)"><%=ip.ip%></td>
+          <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.first_seen)).toLocaleString('vi-VN')%></td>
+          <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.last_seen)).toLocaleString('vi-VN')%></td>
+          <td><%=ip.attempts%></td>
+          <td style="color:#10b981"><%=ip.completed%></td>
+          <td>
+            <%if(parseInt(ip.other_accounts)>0){%>
+            <span class="badge badge-danger">⚠️ <%=ip.other_accounts%> tài khoản khác</span>
+            <%}else{%>
+            <span class="badge badge-success">✅ Chỉ dùng 1 tài khoản</span>
+            <%}%>
+          </td>
+        </tr>
+        <%})%>
+      </table>
+      <%if(ips.length===0){%>
+      <div style="text-align:center;padding:24px;color:var(--text2)">Chưa có dữ liệu IP nào</div>
+      <%}%>
+    </div>
+  </div>
+</div>
+</body></html>

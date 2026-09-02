@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đua Top - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'ranking',user}) %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">🏆 Đua Top Tuần</div></div>
+  <div class="page">
+    <%if(!enabled){%>
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:40px;margin-bottom:12px">🏆</div>
+      <div style="color:var(--text2)">Tính năng đua top hiện đang tắt.</div>
+    </div>
+    <%}else{%>
+    <div class="multiplier-bar" style="margin-bottom:16px">
+      <div><div class="mult-lbl">Tuần kết thúc sau</div><div class="mult-val" id="rc" style="font-size:22px">--</div></div>
+      <div style="text-align:right"><div class="mult-lbl">Vị trí của bạn</div><div style="font-size:22px;font-weight:700;color:var(--accent2)">#<%=myRank||'—'%></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🎁 Phần thưởng tuần</div>
+      <div class="grid3">
+        <div style="text-align:center;padding:12px;background:rgba(245,158,11,0.1);border-radius:12px;border:1px solid rgba(245,158,11,0.2)">
+          <div style="font-size:24px">🥇</div>
+          <div style="font-weight:700;color:#fbbf24"><%=(rewards.weekly_reward_1||0).toLocaleString('vi-VN')%>đ</div>
+          <div style="font-size:11px;color:var(--text2)">Hạng 1</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:rgba(156,163,175,0.1);border-radius:12px;border:1px solid rgba(156,163,175,0.2)">
+          <div style="font-size:24px">🥈</div>
+          <div style="font-weight:700;color:#d1d5db"><%=(rewards.weekly_reward_2||0).toLocaleString('vi-VN')%>đ</div>
+          <div style="font-size:11px;color:var(--text2)">Hạng 2</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:rgba(180,83,9,0.1);border-radius:12px;border:1px solid rgba(180,83,9,0.2)">
+          <div style="font-size:24px">🥉</div>
+          <div style="font-weight:700;color:#d97706"><%=(rewards.weekly_reward_3||0).toLocaleString('vi-VN')%>đ</div>
+          <div style="font-size:11px;color:var(--text2)">Hạng 3</div>
+        </div>
+      </div>
+    </div>
+
+    <%rankings.forEach((r,i)=>{%>
+    <div class="rank-row">
+      <div class="rank-badge <%=i===0?'rb1':i===1?'rb2':i===2?'rb3':'rbx'%>"><%=i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1%></div>
+      <div class="rank-info">
+        <div class="rank-name"><%=r.username%></div>
+        <div class="rank-count">⚡ <%=r.task_count%> lượt vượt · 🪙 <%=r.ncoin_earned.toLocaleString('vi-VN')%>N</div>
+      </div>
+      <%if(i<3&&rewards[`weekly_reward_${i+1}`]){%>
+      <div class="rank-prize">+<%=rewards[`weekly_reward_${i+1}`].toLocaleString('vi-VN')%>đ</div>
+      <%}%>
+    </div>
+    <%})%>
+    <%if(rankings.length===0){%>
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:40px;margin-bottom:12px">🏆</div>
+      <div style="color:var(--text2)">Chưa có dữ liệu. Hãy là người đầu tiên!</div>
+    </div>
+    <%}%>
+    <%}%>
+  </div>
+</div>
+<script>
+let s=<%=secondsLeft%>;
+const el=document.getElementById('rc');
+if(el){function fmt(x){const d=Math.floor(x/86400),h=Math.floor((x%86400)/3600),m=Math.floor((x%3600)/60),sc=x%60;return d>0?`${d}n ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`:`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`}
+el.textContent=fmt(s);setInterval(()=>{if(s>0){s--;el.textContent=fmt(s);}},1000);}
+</script>
+</body></html>

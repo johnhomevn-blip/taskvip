@@ -1,24 +1,21 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>Đăng nhập - TaskVip</title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đăng nhập - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css"></head><body>
+<div class="auth-wrap">
   <div class="auth-box">
-    <h2>Đăng nhập</h2>
-    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <div class="auth-logo">
+      <h1>⚡ TaskVip</h1>
+      <p style="color:var(--text2);font-size:13px;margin-top:4px">Kiếm tiền online mỗi ngày</p>
+    </div>
+    <% if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
     <form method="POST" action="/login">
-      <label>Tên đăng nhập</label>
-      <input name="username" required>
-      <label>Mật khẩu</label>
-      <input type="password" name="password" required>
-      <button class="btn" type="submit">Đăng nhập</button>
+      <div class="fg"><label>Tên đăng nhập</label><input name="username" required placeholder="Nhập tên đăng nhập"></div>
+      <div class="fg"><label>Mật khẩu</label><input type="password" name="password" required placeholder="Nhập mật khẩu"></div>
+      <button class="btn btn-primary btn-full" type="submit">Đăng nhập</button>
     </form>
-    <p style="text-align:center; margin-top:14px; font-size:14px;">
-      Chưa có tài khoản? <a href="/register">Đăng ký</a>
+    <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--text2)">
+      Chưa có tài khoản? <a href="/register" style="color:var(--primary2)">Đăng ký ngay</a>
     </p>
   </div>
-</body>
-</html>
+</div></body></html>

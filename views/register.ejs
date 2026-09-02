@@ -1,26 +1,29 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>Đăng ký - TaskVip</title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đăng ký - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css"></head><body>
+<div class="auth-wrap">
   <div class="auth-box">
-    <h2>Tạo tài khoản</h2>
-    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <div class="auth-logo">
+      <h1>⚡ TaskVip</h1>
+      <p style="color:var(--text2);font-size:13px;margin-top:4px">Tạo tài khoản miễn phí</p>
+    </div>
+    <% if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
     <form method="POST" action="/register">
-      <label>Tên đăng nhập</label>
-      <input name="username" required>
-      <label>Mật khẩu (tối thiểu 6 ký tự)</label>
-      <input type="password" name="password" required>
-      <label>Nhập lại mật khẩu</label>
-      <input type="password" name="password2" required>
-      <button class="btn" type="submit">Đăng ký</button>
+      <input type="hidden" name="fingerprint" id="fp">
+      <div class="fg"><label>Tên đăng nhập</label><input name="username" required placeholder="Chỉ dùng chữ và số"></div>
+      <div class="fg"><label>Mật khẩu</label><input type="password" name="password" required placeholder="Tối thiểu 6 ký tự"></div>
+      <div class="fg"><label>Nhập lại mật khẩu</label><input type="password" name="password2" required placeholder="Nhập lại mật khẩu"></div>
+      <button class="btn btn-primary btn-full" type="submit">Tạo tài khoản</button>
     </form>
-    <p style="text-align:center; margin-top:14px; font-size:14px;">
-      Đã có tài khoản? <a href="/login">Đăng nhập</a>
+    <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--text2)">
+      Đã có tài khoản? <a href="/login" style="color:var(--primary2)">Đăng nhập</a>
     </p>
   </div>
-</body>
-</html>
+</div>
+<script>
+// Tao browser fingerprint don gian
+const fp = [navigator.userAgent, screen.width+'x'+screen.height, navigator.language, new Date().getTimezoneOffset()].join('|');
+document.getElementById('fp').value = btoa(fp).slice(0,32);
+</script>
+</body></html>

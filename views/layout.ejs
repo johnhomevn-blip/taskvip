@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - TaskVip</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <h1>⚡ TaskVip</h1>
+      <p>Kiếm tiền online</p>
+    </div>
+    <div class="sidebar-user">
+      <div class="uname">👤 <%= user.username %></div>
+      <div class="sidebar-coins">
+        <div class="coin-badge ncoin">🪙 <%= user.ncoin.toLocaleString('vi-VN') %> N</div>
+        <div class="coin-badge vcoin">💎 <%= user.vcoin.toLocaleString('vi-VN') %> V</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Tổng quan</div>
+      <a href="/dashboard" class="nav-item <%= page==='dashboard'?'active':'' %>">
+        <span class="icon">📊</span> Dashboard
+      </a>
+      <div class="nav-section">Kiếm tiền</div>
+      <a href="/tasks" class="nav-item <%= page==='tasks'?'active':'' %>">
+        <span class="icon">⚡</span> Vượt Link
+      </a>
+      <a href="/ranking" class="nav-item <%= page==='ranking'?'active':'' %>">
+        <span class="icon">🏆</span> Bảng xếp hạng
+      </a>
+      <div class="nav-section">Tài khoản</div>
+      <a href="/wallet" class="nav-item <%= page==='wallet'?'active':'' %>">
+        <span class="icon">💰</span> Rút tiền
+      </a>
+      <% if (user.is_admin) { %>
+      <div class="nav-section">Quản trị</div>
+      <a href="/admin" class="nav-item <%= page==='admin'?'active':'' %>">
+        <span class="icon">⚙️</span> Quản trị viên
+      </a>
+      <% } %>
+      <div style="margin-top:auto; padding: 16px 0;">
+        <form method="POST" action="/logout">
+          <button type="submit" class="nav-item" style="width:100%;background:none;border:none;cursor:pointer;color:var(--text2);">
+            <span class="icon">🚪</span> Đăng xuất
+          </button>
+        </form>
+      </div>
+    </nav>
+  </div>
+  <div class="main">
+    <%- body %>
+  </div>
+</body>
+</html>

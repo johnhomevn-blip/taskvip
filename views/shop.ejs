@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quy Đổi - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'shop',user}) %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">🛍️ Quy Đổi Sản Phẩm</div></div>
+  <div class="page">
+    <%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
+    <%if(ok){%><div class="alert alert-success">✅ Đặt hàng thành công! Admin sẽ xử lý sớm.</div><%}%>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;padding:14px;background:var(--card);border:1px solid var(--card-border);border-radius:12px">
+      <div>🪙 <b style="color:#fbbf24"><%=user.ncoin.toLocaleString('vi-VN')%> Ncoin</b></div>
+      <div>💎 <b style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN')%> Vcoin</b></div>
+    </div>
+
+    <div class="task-grid">
+      <%products.forEach(p=>{%>
+      <div class="product-card">
+        <div class="product-name"><%=p.name%></div>
+        <%if(p.description){%><div style="font-size:12px;color:var(--text2);margin-bottom:8px"><%=p.description%></div><%}%>
+        <div class="product-price">
+          <%if(p.price_ncoin>0){%><span class="price-tag price-n">🪙 <%=p.price_ncoin.toLocaleString('vi-VN')%>N</span><%}%>
+          <%if(p.price_vcoin>0){%><span class="price-tag price-v">💎 <%=p.price_vcoin.toLocaleString('vi-VN')%>V</span><%}%>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+          <%=p.stock===-1?'Không giới hạn':p.stock===0?'Hết hàng':`Còn ${p.stock} sản phẩm`%>
+        </div>
+        <form method="POST" action="/shop/<%=p.id%>/buy">
+          <button class="btn-task" <%=p.stock===0?'disabled':''%>>
+            <%=p.stock===0?'Hết hàng':'🛍️ Đổi ngay'%>
+          </button>
+        </form>
+      </div>
+      <%})%>
+    </div>
+    <%if(products.length===0){%>
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:40px;margin-bottom:12px">🛍️</div>
+      <div style="color:var(--text2)">Chưa có sản phẩm nào. Quay lại sau nhé!</div>
+    </div>
+    <%}%>
+
+    <%if(myOrders.length>0){%>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">📦 Đơn hàng của bạn</div>
+      <table>
+        <tr><th>Sản phẩm</th><th>Giá</th><th>Trạng thái</th><th>Ngày</th></tr>
+        <%myOrders.forEach(o=>{%>
+        <tr>
+          <td><%=o.pname%></td>
+          <td><%if(o.price_ncoin>0){%>🪙<%=o.price_ncoin.toLocaleString('vi-VN')%>N<%}%><%if(o.price_vcoin>0){%> 💎<%=o.price_vcoin.toLocaleString('vi-VN')%>V<%}%></td>
+          <td><%if(o.status==='completed'){%><span class="badge badge-success">✅ Hoàn thành</span><%}else if(o.status==='rejected'){%><span class="badge badge-danger">❌ Từ chối</span><%}else{%><span class="badge badge-warning">⏳ Chờ xử lý</span><%}%></td>
+          <td style="color:var(--text2)"><%=new Date(parseInt(o.created_at)).toLocaleDateString('vi-VN')%></td>
+        </tr>
+        <%})%>
+      </table>
+    </div>
+    <%}%>
+  </div>
+</div>
+</body></html>

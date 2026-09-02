@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xác nhận - TaskVip</title>
+<link rel="stylesheet" href="/css/style.css"></head><body>
+<div class="verify-wrap">
+  <div class="verify-box">
+    <%if(status==='success'){%>
+    <div id="vi"><div class="spinner"></div></div>
+    <div class="verify-title" id="vt">Đang xử lý...</div>
+    <div class="verify-sub" id="vs">Vui lòng chờ trong giây lát</div>
+    <div id="vr" style="display:none">
+      <div class="verify-reward">+<%=reward.toLocaleString('vi-VN')%> Ncoin</div>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:20px">Hệ số ×<%=multiplier%></div>
+      <a href="/tasks" class="btn btn-primary btn-full">Về trang nhiệm vụ</a>
+    </div>
+    <%}else{%>
+    <div class="verify-icon">❌</div>
+    <div class="verify-title">Có lỗi xảy ra</div>
+    <div class="verify-sub" style="margin-bottom:20px"><%=message%></div>
+    <a href="/tasks" class="btn btn-primary btn-full">Về trang nhiệm vụ</a>
+    <%}%>
+  </div>
+</div>
+<%if(status==='success'){%>
+<script>
+setTimeout(()=>{
+  document.getElementById('vi').innerHTML='<div class="verify-icon">✅</div>';
+  document.getElementById('vt').textContent='Nhận Ncoin thành công!';
+  document.getElementById('vs').textContent='';
+  document.getElementById('vr').style.display='block';
+},2200);
+</script>
+<%}%>
+</body></html>
