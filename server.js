@@ -40,7 +40,6 @@ function requireAdmin(req, res, next) {
 // Routes cong khai
 app.use('/', require('./routes/auth'));
 app.use('/', require('./routes/verify'));
-app.use('/', require('./routes/verify'));
 
 // Route tao admin lan dau - XOA DONG NAY SAU KHI DA TAO XONG ADMIN
 app.get('/setup-admin-taskvip', (req, res) => {
