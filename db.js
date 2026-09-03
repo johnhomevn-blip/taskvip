@@ -150,7 +150,7 @@ async function init() {
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
-    );
+      `);
 // Them cot moi neu chua co (cho truong hop bang da ton tai tu truoc)
 await pool.query(`
   ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS reward_actual INTEGER DEFAULT 0;
