@@ -167,18 +167,19 @@ async function init() {
 
   // Them cot moi neu chua co (cho truong hop bang da ton tai tu phien ban cu)
   await pool.query(`
-    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS reward_actual INTEGER DEFAULT 0;
-    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS multiplier NUMERIC(6,4) DEFAULT 1.0;
-    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS fingerprint TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS ncoin INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS vcoin INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_owner TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_ip TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_fingerprint TEXT DEFAULT '';
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS reward_actual INTEGER DEFAULT 0;
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS multiplier NUMERIC(6,4) DEFAULT 1.0;
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS fingerprint TEXT;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS category_id INTEGER;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS ip_daily_limit INTEGER DEFAULT 2;
-    ALTER TABLE tasks RENAME COLUMN reward TO base_reward;
   `);
 
   console.log('Database san sang');
