@@ -151,7 +151,18 @@ async function init() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
-
+// Them cot moi neu chua co (cho truong hop bang da ton tai tu truoc)
+await pool.query(`
+  ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS reward_actual INTEGER DEFAULT 0;
+  ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS multiplier NUMERIC(6,4) DEFAULT 1.0;
+  ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS fingerprint TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT DEFAULT '';
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account TEXT DEFAULT '';
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_owner TEXT DEFAULT '';
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_ip TEXT DEFAULT '';
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_fingerprint TEXT DEFAULT '';
+`);
     INSERT INTO settings VALUES ('weekly_reward_1','50000') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('weekly_reward_2','30000') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('weekly_reward_3','20000') ON CONFLICT DO NOTHING;
@@ -167,7 +178,7 @@ async function init() {
   console.log('Database san sang');
 }
 
-init().catch(err => { console.error('DB error:', err); process.exit(1); });
+init()CREATE TABLE IF NOT EXISTS task_attempts:.catch(err => { console.error('DB error:', err); process.exit(1); });
 
 pool.q   = async (t, p) => (await pool.query(t, p)).rows;
 pool.get = async (t, p) => (await pool.query(t, p)).rows[0] || null;
