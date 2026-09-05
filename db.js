@@ -82,6 +82,14 @@ async function init() {
       PRIMARY KEY (ip, user_id)
     );
 
+    CREATE TABLE IF NOT EXISTS fp_user_map (
+      fingerprint TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      first_seen BIGINT NOT NULL,
+      last_seen BIGINT NOT NULL,
+      PRIMARY KEY (fingerprint, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS withdrawals (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,

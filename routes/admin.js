@@ -20,7 +20,8 @@ router.get('/admin', async (req, res) => {
   const ipMonitor = await db.q(`
     SELECT ta.id, ta.ip_created, ta.fingerprint, ta.status, ta.created_at,
     u.username, t.name as task_name,
-    (SELECT COUNT(*) FROM ip_user_map WHERE ip=ta.ip_created AND user_id != ta.user_id) as other_accounts
+    (SELECT COUNT(*) FROM ip_user_map WHERE ip=ta.ip_created AND user_id != ta.user_id) as other_accounts,
+    (SELECT COUNT(*) FROM fp_user_map WHERE fingerprint=ta.fingerprint AND user_id != ta.user_id AND ta.fingerprint IS NOT NULL AND ta.fingerprint != '') as other_accounts_fp
     FROM task_attempts ta
     JOIN users u ON u.id = ta.user_id
     JOIN tasks t ON t.id = ta.task_id

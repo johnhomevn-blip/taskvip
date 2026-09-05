@@ -316,8 +316,12 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             </td>
             <td>
               <%if(parseInt(row.other_accounts)>0){%>
-              <span class="badge badge-danger">⚠️ <%=row.other_accounts%> tài khoản khác</span>
-              <%}else{%>
+              <span class="badge badge-danger">⚠️ <%=row.other_accounts%> tk trùng IP</span>
+              <%}%>
+              <%if(parseInt(row.other_accounts_fp)>0){%>
+              <span class="badge badge-danger" style="margin-left:4px">📱 <%=row.other_accounts_fp%> tk trùng máy</span>
+              <%}%>
+              <%if(parseInt(row.other_accounts)===0 && parseInt(row.other_accounts_fp)===0){%>
               <span style="color:var(--text2);font-size:11px">—</span>
               <%}%>
             </td>

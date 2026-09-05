@@ -52,6 +52,17 @@ router.post('/tasks/:id/start', async (req, res) => {
     return res.redirect('/tasks?error=IP này đã được sử dụng bởi tài khoản khác. Không thể tạo link.');
   }
 
+  // Kiem tra fingerprint thiet bi da dung boi tai khoan khac chua (backup cho truong hop doi IP)
+  if (fp) {
+    const fpConflict = await db.get(
+      'SELECT user_id FROM fp_user_map WHERE fingerprint=$1 AND user_id != $2 LIMIT 1',
+      [fp, user.id]
+    );
+    if (fpConflict) {
+      return res.redirect('/tasks?error=Thiết bị này đã được dùng bởi tài khoản khác. Không thể tạo link.');
+    }
+  }
+
   // Kiem tra gioi han IP theo nhiem vu
   const ipToday = await db.get(
     `SELECT COUNT(*) as c FROM task_attempts
@@ -74,6 +85,7 @@ router.post('/tasks/:id/start', async (req, res) => {
 
   // Ghi nhan IP - user mapping
   await pool_upsert_ip(ip, user.id);
+  if (fp) await pool_upsert_fp(fp, user.id);
 
   const multiplier = getMultiplier();
   const rewardActual = Math.round(task.base_reward * multiplier);
@@ -88,12 +100,14 @@ router.post('/tasks/:id/start', async (req, res) => {
   const sig = token.sign(attempt.id);
   const verifyUrl = `${process.env.BASE_URL}/verify?tid=${attempt.id}&sig=${sig}`;
   try {
-    const shortUrl = await createShortLink('link4m', verifyUrl);
+    const shortUrl = await createShortLink(task.provider, verifyUrl);
     await db.run('UPDATE task_attempts SET short_url=$1 WHERE id=$2', [shortUrl, attempt.id]);
     res.redirect(shortUrl);
   } catch (err) {
-    console.error(err);
-    res.redirect('/tasks?error=Không tạo được link nhiệm vụ, thử lại sau');
+    console.error('Loi tao short link:', err.message);
+    // Xoa dong attempt vua tao vi khong dung duoc, tranh rac trong log giam sat
+    await db.run('DELETE FROM task_attempts WHERE id=$1', [attempt.id]);
+    res.redirect('/tasks?error=Không tạo được link nhiệm vụ (kiểm tra API Key nhà cung cấp trong Admin), thử lại sau');
   }
 });
 
@@ -104,6 +118,17 @@ async function pool_upsert_ip(ip, userId) {
       `INSERT INTO ip_user_map (ip, user_id, first_seen, last_seen) VALUES ($1,$2,$3,$3)
        ON CONFLICT (ip, user_id) DO UPDATE SET last_seen=$3`,
       [ip, userId, now]
+    );
+  } catch(e) {}
+}
+
+async function pool_upsert_fp(fp, userId) {
+  const now = Date.now();
+  try {
+    await db.run(
+      `INSERT INTO fp_user_map (fingerprint, user_id, first_seen, last_seen) VALUES ($1,$2,$3,$3)
+       ON CONFLICT (fingerprint, user_id) DO UPDATE SET last_seen=$3`,
+      [fp, userId, now]
     );
   } catch(e) {}
 }
