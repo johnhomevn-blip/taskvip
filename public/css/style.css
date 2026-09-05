@@ -219,3 +219,7 @@ tr:last-child td{border-bottom:none}
 
 /* IP badge */
 .ip-badge { font-size:11px;background:rgba(255,255,255,0.06);border:1px solid var(--card-border);padding:3px 8px;border-radius:20px;color:var(--text2);font-family:monospace; }
+
+/* AD SLOTS */
+.ad-slot{display:flex;justify-content:center;margin:16px 0;min-height:20px}
+.ad-banner300{min-height:250px}

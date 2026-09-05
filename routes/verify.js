@@ -6,21 +6,21 @@ const router = express.Router();
 
 router.get('/verify', async (req, res) => {
   const { tid, sig } = req.query;
-  if (!tid || !sig) return res.render('verify', { status:'error', message:'Thiếu thông tin xác nhận.', reward:0, multiplier:1 });
+  if (!tid || !sig) return res.render('verify', { status:'error', message:'Thiếu thông tin xác nhận.', reward:0, multiplier:1, targetUrl:null });
 
   const attempt = await db.get('SELECT * FROM task_attempts WHERE id=$1', [tid]);
-  if (!attempt) return res.render('verify', { status:'error', message:'Nhiệm vụ không tồn tại.', reward:0, multiplier:1 });
-  if (!token.verify(tid, sig)) return res.render('verify', { status:'error', message:'Chữ ký không hợp lệ.', reward:0, multiplier:1 });
-  if (attempt.status !== 'pending') return res.render('verify', { status:'error', message:'Nhiệm vụ này đã được xử lý rồi.', reward:0, multiplier:1 });
+  if (!attempt) return res.render('verify', { status:'error', message:'Nhiệm vụ không tồn tại.', reward:0, multiplier:1, targetUrl:null });
+  if (!token.verify(tid, sig)) return res.render('verify', { status:'error', message:'Chữ ký không hợp lệ.', reward:0, multiplier:1, targetUrl:null });
+  if (attempt.status !== 'pending') return res.render('verify', { status:'error', message:'Nhiệm vụ này đã được xử lý rồi.', reward:0, multiplier:1, targetUrl:null });
   if (Date.now() > parseInt(attempt.expires_at)) {
     await db.run("UPDATE task_attempts SET status='expired' WHERE id=$1", [tid]);
-    return res.render('verify', { status:'error', message:'Link đã hết hạn, vui lòng thực hiện lại.', reward:0, multiplier:1 });
+    return res.render('verify', { status:'error', message:'Link đã hết hạn, vui lòng thực hiện lại.', reward:0, multiplier:1, targetUrl:null });
   }
 
   const task = await db.get('SELECT * FROM tasks WHERE id=$1', [attempt.task_id]);
   const elapsed = (Date.now() - parseInt(attempt.created_at)) / 1000;
   if (elapsed < task.min_seconds) {
-    return res.render('verify', { status:'error', message:'Chưa hoàn thành đủ thời gian yêu cầu.', reward:0, multiplier:1 });
+    return res.render('verify', { status:'error', message:'Chưa hoàn thành đủ thời gian yêu cầu.', reward:0, multiplier:1, targetUrl:null });
   }
 
   const ip = req.ip;
@@ -64,10 +64,10 @@ router.get('/verify', async (req, res) => {
   } catch(err) {
     await client.query('ROLLBACK');
     console.error(err);
-    return res.render('verify', { status:'error', message:'Có lỗi xảy ra, thử lại sau.', reward:0, multiplier:1 });
+    return res.render('verify', { status:'error', message:'Có lỗi xảy ra, thử lại sau.', reward:0, multiplier:1, targetUrl:null });
   } finally { client.release(); }
 
-  res.render('verify', { status:'success', message:'Hoàn thành!', reward: attempt.reward_actual, multiplier: attempt.multiplier });
+  res.render('verify', { status:'success', message:'Hoàn thành!', reward: attempt.reward_actual, multiplier: attempt.multiplier, targetUrl: task.target_url });
 });
 
 function getWeekStart() {

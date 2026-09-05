@@ -66,7 +66,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <select name="provider" style="<%=sel%>">
             <%providers.filter(p=>p.active).forEach(p=>{%><option value="<%=p.name%>"><%=p.name%></option><%})%>
           </select>
-          <input name="target_url" placeholder="URL đích" style="<%=inp%>" required>
+          <input name="target_url" placeholder="URL đích (để trống = tự về trang nhiệm vụ)" style="<%=inp%>">
           <input name="base_reward" type="number" placeholder="Thưởng Ncoin" style="<%=inp%>" required>
           <input name="exp_reward" type="number" placeholder="EXP" value="1" style="<%=inp%>">
           <input name="min_seconds" type="number" placeholder="Giây tối thiểu" value="15" style="<%=inp%>">

@@ -3,6 +3,8 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Xác nhận - 4ummo</title>
 <link rel="stylesheet" href="/css/style.css"></head><body>
+<%- include('partials/ads/popunder') %>
+<%- include('partials/ads/socialbar') %>
 <div class="verify-wrap">
   <div class="verify-box">
     <%if(status==='success'){%>
@@ -12,7 +14,10 @@
     <div id="vr" style="display:none">
       <div class="verify-reward">+<%=reward.toLocaleString('vi-VN')%> Ncoin</div>
       <div style="color:var(--text2);font-size:13px;margin-bottom:20px">Hệ số ×<%=multiplier%></div>
-      <a href="/tasks" class="btn btn-primary btn-full">Về trang nhiệm vụ</a>
+      <%if(targetUrl){%>
+      <a href="<%=targetUrl%>" target="_blank" rel="noopener" class="btn btn-primary btn-full" style="margin-bottom:10px">🎁 Nhận Ncoin ngay</a>
+      <%}%>
+      <a href="/tasks" class="btn btn-outline btn-full">Về trang nhiệm vụ</a>
     </div>
     <%}else{%>
     <div class="verify-icon">❌</div>
@@ -20,6 +25,8 @@
     <div class="verify-sub" style="margin-bottom:20px"><%=message%></div>
     <a href="/tasks" class="btn btn-primary btn-full">Về trang nhiệm vụ</a>
     <%}%>
+    <%- include('partials/ads/banner300') %>
+    <%- include('partials/ads/native') %>
   </div>
 </div>
 <%if(status==='success'){%>

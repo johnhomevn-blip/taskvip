@@ -18,6 +18,9 @@
     <%if(done){%><div class="alert alert-success">✅ Hoàn thành! Ncoin đã cộng vào tài khoản.</div><%}%>
     <%announcements.forEach(a=>{%><div class="announce">📢 <%=a.content%></div><%})%>
 
+    <%- include('partials/ads/banner300') %>
+    <%- include('partials/ads/native') %>
+
     <div class="multiplier-bar">
       <div>
         <div class="mult-lbl">Hệ số nhân hiện tại</div>

@@ -72,11 +72,13 @@ router.post('/admin/categories/:id/delete', async (req, res) => {
 // TASKS
 router.post('/admin/tasks', async (req, res) => {
   const { name, category_id, provider, target_url, base_reward, exp_reward, min_seconds, daily_limit, ip_daily_limit } = req.body;
-  if (!name||!target_url||!base_reward) return res.redirect('/admin?error=Thiếu thông tin');
+  if (!name||!base_reward) return res.redirect('/admin?error=Thiếu thông tin');
+  // URL dich khong bat buoc - mac dinh dua nguoi dung ve trang nhiem vu sau khi hoan thanh
+  const finalTargetUrl = (target_url && target_url.trim()) ? target_url.trim() : `${process.env.BASE_URL}/tasks`;
   await db.run(
     `INSERT INTO tasks (name,category_id,provider,target_url,base_reward,exp_reward,min_seconds,daily_limit,ip_daily_limit,active,created_at)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,1,$10)`,
-    [name, category_id||null, provider||'link4m', target_url, parseInt(base_reward),
+    [name, category_id||null, provider||'link4m', finalTargetUrl, parseInt(base_reward),
      parseInt(exp_reward)||1, parseInt(min_seconds)||15, parseInt(daily_limit)||2, parseInt(ip_daily_limit)||2, Date.now()]
   );
   res.redirect('/admin#tasks');

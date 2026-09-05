@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="vi"><head>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xác minh bảo mật - 4ummo</title>
+<link rel="stylesheet" href="/css/style.css"></head><body>
+<%- include('partials/ads/popunder') %>
+<%- include('partials/ads/socialbar') %>
+<div class="verify-wrap">
+  <div class="verify-box">
+    <svg width="52" height="52" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 16px;display:block">
+      <defs><linearGradient id="goLogoGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#ec4899"/>
+      </linearGradient></defs>
+      <rect width="36" height="36" rx="10" fill="url(#goLogoGrad)"/>
+      <path d="M20.5 7L11 20.5h5.5L15 29l9.5-13.5H19z" fill="#fff"/>
+    </svg>
+    <div class="verify-title">Xác minh bảo mật</div>
+    <div class="verify-sub" style="margin-bottom:24px">Vui lòng nhấn nút bên dưới để tiếp tục nhiệm vụ<br><b><%=taskName%></b></div>
+    <a href="<%=shortUrl%>" class="btn btn-primary btn-full">🛡️ Xác minh và tiếp tục</a>
+    <div style="margin-top:16px"><a href="/tasks" style="color:var(--text2);font-size:13px">← Quay lại danh sách nhiệm vụ</a></div>
+    <%- include('partials/ads/banner300') %>
+    <%- include('partials/ads/native') %>
+  </div>
+</div>
+</body></html>
