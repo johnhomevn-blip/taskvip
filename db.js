@@ -213,11 +213,11 @@ async function init() {
     ON CONFLICT DO NOTHING;
 
     INSERT INTO providers (name, api_key, api_endpoint, active, created_at)
-    VALUES ('link4m', '', 'https://link4m.co/api', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    VALUES ('link4m', '', 'https://link4m.co/st', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     ON CONFLICT DO NOTHING;
 
     INSERT INTO providers (name, api_key, api_endpoint, active, created_at)
-    VALUES ('site2s', '', 'https://site2s.com/api', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    VALUES ('site2s', '', 'https://site2s.com/st', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     ON CONFLICT DO NOTHING;
   `);
 
@@ -248,6 +248,8 @@ async function init() {
       ORDER BY name, (api_key <> '') DESC, id ASC
     );
     CREATE UNIQUE INDEX IF NOT EXISTS providers_name_key ON providers (name);
+    UPDATE providers SET api_endpoint='https://link4m.co/st' WHERE name='link4m' AND api_endpoint != 'https://link4m.co/st';
+    UPDATE providers SET api_endpoint='https://site2s.com/st' WHERE name='site2s' AND api_endpoint != 'https://site2s.com/st';
   `);
 
   console.log('Database san sang');
