@@ -1,4 +1,4 @@
-# TaskVip — Web nhiệm vụ kiếm tiền (rút gọn link)
+# 4ummo — Web nhiệm vụ kiếm tiền (rút gọn link)
 
 Web này cho phép người dùng đăng ký tài khoản, thực hiện các "nhiệm vụ" (đi qua
 link rút gọn của Link4m/Uptolink...), và khi hoàn thành thật sự sẽ được cộng

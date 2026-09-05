@@ -1,8 +1,13 @@
 <!DOCTYPE html><html lang="vi"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin - TaskVip</title>
+<title>Admin - 4ummo</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/coins.css">
 <script src="/js/menu.js" defer></script></head><body>
+<%
+const inp = 'padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text);width:100%';
+const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
+%>
 <%- include('partials/sidebar',{page:'admin',user}) %>
 <div class="main" id="main">
   <%- include('partials/topbar') %>
@@ -12,42 +17,59 @@
     <%if(ok){%><div class="alert alert-success">✅ Thao tác thành công!</div><%}%>
 
     <div class="tabs">
-      <button class="tab-btn active" onclick="showTab('tasks')">⚡ Nhiệm vụ</button>
-      <button class="tab-btn" onclick="showTab('withdrawals')">💸 Rút tiền</button>
-      <button class="tab-btn" onclick="showTab('topup')">💎 Cộng Vcoin</button>
-      <button class="tab-btn" onclick="showTab('shop')">🛍️ Sản phẩm</button>
-      <button class="tab-btn" onclick="showTab('ranking')">🏆 Đua top</button>
-      <button class="tab-btn" onclick="showTab('users')">👥 Users & IP</button>
-      <button class="tab-btn" onclick="showTab('announce')">📢 Thông báo</button>
-      <button class="tab-btn" onclick="showTab('settings')">⚙️ Cài đặt</button>
+      <button class="tab-btn active" onclick="showTab('tasks',this)">⚡ Nhiệm vụ</button>
+      <button class="tab-btn" onclick="showTab('providers',this)">🔗 Nhà cung cấp</button>
+      <button class="tab-btn" onclick="showTab('withdrawals',this)">💸 Rút tiền</button>
+      <button class="tab-btn" onclick="showTab('buff',this)">🎁 Buff coin</button>
+      <button class="tab-btn" onclick="showTab('shop',this)">🛍️ Sản phẩm</button>
+      <button class="tab-btn" onclick="showTab('ranking',this)">🏆 Đua top</button>
+      <button class="tab-btn" onclick="showTab('users',this)">👥 Users & IP</button>
+      <button class="tab-btn" onclick="showTab('content',this)">📢 Nội dung</button>
+      <button class="tab-btn" onclick="showTab('settings',this)">⚙️ Cài đặt</button>
     </div>
 
     <!-- TASKS -->
     <div class="tab-panel active" id="tab-tasks">
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title">➕ Thêm danh mục nhiệm vụ</div>
-        <form method="POST" action="/admin/categories" style="display:flex;gap:8px;flex-wrap:wrap">
-          <input name="name" placeholder="Tên danh mục" class="fg" style="flex:1;min-width:150px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" required>
-          <input name="icon" placeholder="Icon (emoji)" style="width:80px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" value="⚡">
-          <input name="sort_order" type="number" placeholder="Thứ tự" style="width:80px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" value="0">
-          <button class="btn btn-success" type="submit">Thêm</button>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">📁 Danh mục nhiệm vụ</div>
+        <form method="POST" action="/admin/categories" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <input name="name" placeholder="Tên danh mục" style="flex:1;min-width:140px;<%=inp%>" required>
+          <input name="icon" placeholder="Icon" style="width:70px;<%=inp%>" value="⚡">
+          <input name="sort_order" type="number" placeholder="Thứ tự" style="width:80px;<%=inp%>" value="0">
+          <button class="btn btn-success btn-sm" type="submit">+ Thêm</button>
         </form>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <%categories.forEach(c=>{%>
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:6px 10px">
+            <span><%=c.icon%> <%=c.name%></span>
+            <form method="POST" action="/admin/categories/<%=c.id%>/toggle" style="display:inline">
+              <button class="btn btn-sm <%=c.active?'btn-warning':'btn-success'%>" type="submit" style="padding:2px 8px;font-size:11px"><%=c.active?'Tắt':'Bật'%></button>
+            </form>
+            <form method="POST" action="/admin/categories/<%=c.id%>/delete" onsubmit="return confirm('Xóa danh mục?')" style="display:inline">
+              <button class="btn btn-sm btn-danger" type="submit" style="padding:2px 8px;font-size:11px">Xóa</button>
+            </form>
+          </div>
+          <%})%>
+        </div>
       </div>
 
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title">➕ Thêm nhiệm vụ mới</div>
-        <form method="POST" action="/admin/tasks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
-          <input name="name" placeholder="Tên nhiệm vụ" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" required>
-          <select name="category_id" style="padding:9px 12px;background:var(--bg2);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">➕ Thêm nhiệm vụ</div>
+        <form method="POST" action="/admin/tasks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+          <input name="name" placeholder="Tên nhiệm vụ" style="<%=inp%>" required>
+          <select name="category_id" style="<%=sel%>">
             <option value="">-- Không có danh mục --</option>
-            <%categories.forEach(c=>{%><option value="<%=c.id%>"><%=c.icon%> <%=c.name%></option><%})%>
+            <%categories.filter(c=>c.active).forEach(c=>{%><option value="<%=c.id%>"><%=c.icon%> <%=c.name%></option><%})%>
           </select>
-          <input name="target_url" placeholder="URL đích" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" required>
-          <input name="base_reward" type="number" placeholder="Thưởng (Ncoin)" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" required>
-          <input name="exp_reward" type="number" placeholder="EXP" value="1" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
-          <input name="min_seconds" type="number" placeholder="Giây tối thiểu" value="15" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
-          <input name="daily_limit" type="number" placeholder="Lượt/user/ngày" value="2" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
-          <input name="ip_daily_limit" type="number" placeholder="Lượt/IP/ngày" value="2" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
+          <select name="provider" style="<%=sel%>">
+            <%providers.filter(p=>p.active).forEach(p=>{%><option value="<%=p.name%>"><%=p.name%></option><%})%>
+          </select>
+          <input name="target_url" placeholder="URL đích" style="<%=inp%>" required>
+          <input name="base_reward" type="number" placeholder="Thưởng Ncoin" style="<%=inp%>" required>
+          <input name="exp_reward" type="number" placeholder="EXP" value="1" style="<%=inp%>">
+          <input name="min_seconds" type="number" placeholder="Giây tối thiểu" value="15" style="<%=inp%>">
+          <input name="daily_limit" type="number" placeholder="Lượt/user/ngày" value="2" style="<%=inp%>">
+          <input name="ip_daily_limit" type="number" placeholder="Lượt/IP/ngày" value="2" style="<%=inp%>">
           <button class="btn btn-primary" type="submit" style="grid-column:1/-1">➕ Thêm nhiệm vụ</button>
         </form>
       </div>
@@ -55,104 +77,144 @@
       <div class="card">
         <div class="card-title">📋 Danh sách nhiệm vụ</div>
         <table>
-          <tr><th>Tên</th><th>Danh mục</th><th>Thưởng</th><th>Lượt/ngày</th><th>IP/ngày</th><th>Trạng thái</th><th></th></tr>
+          <tr><th>Tên</th><th>Danh mục</th><th>NCC</th><th>Thưởng</th><th>Lượt</th><th>IP/ngày</th><th>Trạng thái</th><th></th></tr>
           <%tasks.forEach(t=>{%>
           <tr>
             <td><%=t.name%></td>
             <td style="color:var(--text2)"><%=t.cat_name||'—'%></td>
-            <td style="color:#fbbf24">🪙<%=t.base_reward.toLocaleString('vi-VN')%></td>
-            <td><%=t.daily_limit%></td>
-            <td><%=t.ip_daily_limit%></td>
+            <td><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600"><%=t.provider%></span></td>
+            <td><span class="coin-wrap"><span class="ni sm">N</span><%=t.base_reward.toLocaleString('vi-VN')%></span></td>
+            <td><%=t.daily_limit%></td><td><%=t.ip_daily_limit%></td>
             <td><%if(t.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
-            <td style="display:flex;gap:4px;flex-wrap:wrap">
+            <td style="display:flex;gap:4px">
               <form method="POST" action="/admin/tasks/<%=t.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=t.active?'Tắt':'Bật'%></button></form>
-              <form method="POST" action="/admin/tasks/<%=t.id%>/delete" onsubmit="return confirm('Xóa nhiệm vụ này?')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
+              <form method="POST" action="/admin/tasks/<%=t.id%>/delete" onsubmit="return confirm('Xóa nhiệm vụ? Lịch sử cũng bị xóa.')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
             </td>
           </tr>
           <%})%>
         </table>
+      </div>
+    </div>
+
+    <!-- PROVIDERS -->
+    <div class="tab-panel" id="tab-providers">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">➕ Thêm nhà cung cấp mới</div>
+        <form method="POST" action="/admin/providers/add" style="display:flex;gap:8px;flex-wrap:wrap">
+          <input name="name" placeholder="Tên (link4m, site2s...)" style="flex:1;min-width:120px;<%=inp%>" required>
+          <input name="api_key" placeholder="API Key" style="flex:2;min-width:200px;<%=inp%>">
+          <input name="api_endpoint" placeholder="Endpoint URL" style="flex:2;min-width:200px;<%=inp%>">
+          <button class="btn btn-primary" type="submit">+ Thêm</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-title">🔗 Nhà cung cấp link rút gọn</div>
+        <%providers.forEach(p=>{%>
+        <div style="padding:14px;border-bottom:1px solid var(--card-border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-weight:600;font-size:15px"><%=p.name%></span>
+              <%if(p.active){%><span class="badge badge-success">Active</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%>
+            </div>
+            <form method="POST" action="/admin/providers/<%=p.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=p.active?'Tắt':'Bật'%></button></form>
+          </div>
+          <form method="POST" action="/admin/providers" style="display:flex;gap:8px">
+            <input type="hidden" name="id" value="<%=p.id%>">
+            <input name="api_key" placeholder="API Key" value="<%=p.api_key%>" style="flex:1;<%=inp%>">
+            <button class="btn btn-success btn-sm" type="submit">💾 Lưu</button>
+          </form>
+          <div style="font-size:11px;color:var(--text2);margin-top:6px">Endpoint: <%=p.api_endpoint||'Mặc định'%></div>
+        </div>
+        <%})%>
       </div>
     </div>
 
     <!-- WITHDRAWALS -->
     <div class="tab-panel" id="tab-withdrawals">
       <div class="card">
-        <div class="card-title">💸 Yêu cầu rút tiền chờ duyệt (<%=withdrawals.length%>)</div>
+        <div class="card-title">💸 Rút tiền chờ duyệt (<%=withdrawals.length%>)</div>
         <table>
-          <tr><th>User</th><th>Số tiền</th><th>Phương thức</th><th>Thông tin</th><th>Ngày</th><th></th></tr>
+          <tr><th>User</th><th>Số tiền</th><th>Phí</th><th>Thực nhận</th><th>PT</th><th>Thông tin</th><th>Ngày</th><th></th></tr>
           <%withdrawals.forEach(w=>{%>
           <tr>
             <td><b><%=w.username%></b></td>
-            <td style="color:#fbbf24;font-weight:600">🪙<%=w.amount.toLocaleString('vi-VN')%></td>
+            <td><span class="coin-wrap"><span class="ni sm">N</span><%=w.amount.toLocaleString('vi-VN')%></span></td>
+            <td style="color:#ef4444">-<%=(w.fee||0).toLocaleString('vi-VN')%></td>
+            <td style="color:#10b981;font-weight:600"><%=(w.amount-(w.fee||0)).toLocaleString('vi-VN')%>đ</td>
             <td><%=w.method%></td>
             <td style="font-size:12px;color:var(--text2)"><%=w.detail%></td>
-            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(w.created_at)).toLocaleDateString('vi-VN')%></td>
+            <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(w.created_at)).toLocaleDateString('vi-VN')%></td>
             <td style="display:flex;gap:4px">
-              <form method="POST" action="/admin/withdrawals/<%=w.id%>/approve"><button class="btn btn-sm btn-success" type="submit">✅ Duyệt</button></form>
-              <form method="POST" action="/admin/withdrawals/<%=w.id%>/reject"><button class="btn btn-sm btn-danger" type="submit">❌ Từ chối</button></form>
+              <form method="POST" action="/admin/withdrawals/<%=w.id%>/approve"><button class="btn btn-sm btn-success" type="submit">✅</button></form>
+              <form method="POST" action="/admin/withdrawals/<%=w.id%>/reject"><button class="btn btn-sm btn-danger" type="submit">❌</button></form>
             </td>
           </tr>
           <%})%>
         </table>
-        <%if(withdrawals.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Không có yêu cầu nào</div><%}%>
+        <%if(withdrawals.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Không có yêu cầu</div><%}%>
       </div>
     </div>
 
-    <!-- TOPUP -->
-    <div class="tab-panel" id="tab-topup">
+    <!-- BUFF -->
+    <div class="tab-panel" id="tab-buff">
       <div class="card">
-        <div class="card-title">💎 Cộng Vcoin cho user</div>
-        <form method="POST" action="/admin/topup" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-          <select name="user_id" style="padding:9px 12px;background:var(--bg2);border:1px solid var(--card-border);border-radius:10px;color:var(--text);flex:1;min-width:150px">
-            <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%> (💎<%=u.vcoin%>V)</option><%})%>
-          </select>
-          <input name="amount" type="number" placeholder="Số Vcoin" style="width:120px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" required>
-          <input name="note" placeholder="Ghi chú" style="flex:1;min-width:150px;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
-          <button class="btn btn-primary" type="submit">💎 Cộng Vcoin</button>
+        <div class="card-title">🎁 Cộng coin cho user (buff top / nạp thủ công)</div>
+        <form method="POST" action="/admin/buff" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
+          <select name="user_id" style="width:100%;<%=sel%>">
+            <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%> (<%=u.ncoin%>N/<%=u.vcoin%>V)</option><%})%>
+          </select></div>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px"><span class="ni sm">N</span> Ncoin cộng thêm</label>
+          <input name="ncoin_amount" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px"><span class="vi sm">V</span> Vcoin cộng thêm</label>
+          <input name="vcoin_amount" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Ghi chú</label>
+          <input name="note" placeholder="Lý do..." style="width:100%;<%=inp%>"></div>
+          <div style="align-self:end"><button class="btn btn-primary btn-full" type="submit">🎁 Cộng coin</button></div>
         </form>
       </div>
     </div>
 
     <!-- SHOP -->
     <div class="tab-panel" id="tab-shop">
-      <div class="card" style="margin-bottom:14px">
+      <div class="card" style="margin-bottom:12px">
         <div class="card-title">➕ Thêm sản phẩm</div>
-        <form method="POST" action="/admin/products" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
-          <input name="name" placeholder="Tên sản phẩm" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" required>
-          <input name="description" placeholder="Mô tả" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
-          <input name="price_ncoin" type="number" placeholder="Giá Ncoin" value="0" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
-          <input name="price_vcoin" type="number" placeholder="Giá Vcoin" value="0" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
-          <input name="stock" type="number" placeholder="Số lượng (-1=vô hạn)" value="-1" style="padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
+        <form method="POST" action="/admin/products" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+          <input name="name" placeholder="Tên sản phẩm" style="<%=inp%>" required>
+          <input name="description" placeholder="Mô tả" style="<%=inp%>">
+          <input name="price_ncoin" type="number" placeholder="Giá Ncoin" value="0" style="<%=inp%>">
+          <input name="price_vcoin" type="number" placeholder="Giá Vcoin" value="0" style="<%=inp%>">
+          <input name="stock" type="number" placeholder="Kho (-1=∞)" value="-1" style="<%=inp%>">
           <button class="btn btn-primary" type="submit">➕ Thêm</button>
         </form>
       </div>
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title">📦 Đơn hàng chờ xử lý (<%=orders.length%>)</div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">📦 Đơn hàng chờ (<%=orders.length%>)</div>
         <table>
           <tr><th>User</th><th>Sản phẩm</th><th>Giá</th><th>Ngày</th><th></th></tr>
           <%orders.forEach(o=>{%>
           <tr>
             <td><%=o.username%></td><td><%=o.pname%></td>
-            <td><%if(o.price_ncoin>0){%>🪙<%=o.price_ncoin.toLocaleString('vi-VN')%>N<%}%><%if(o.price_vcoin>0){%> 💎<%=o.price_vcoin.toLocaleString('vi-VN')%>V<%}%></td>
-            <td style="color:var(--text2)"><%=new Date(parseInt(o.created_at)).toLocaleDateString('vi-VN')%></td>
+            <td><%if(o.price_ncoin>0){%><span class="coin-wrap"><span class="ni sm">N</span><%=o.price_ncoin.toLocaleString('vi-VN')%></span><%}%><%if(o.price_vcoin>0){%><span class="coin-wrap"><span class="vi sm">V</span><%=o.price_vcoin.toLocaleString('vi-VN')%></span><%}%></td>
+            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(o.created_at)).toLocaleDateString('vi-VN')%></td>
             <td style="display:flex;gap:4px">
-              <form method="POST" action="/admin/orders/<%=o.id%>/done"><button class="btn btn-sm btn-success" type="submit">✅</button></form>
-              <form method="POST" action="/admin/orders/<%=o.id%>/reject"><button class="btn btn-sm btn-danger" type="submit">❌</button></form>
+              <form method="POST" action="/admin/orders/<%=o.id%>/done"><button class="btn btn-sm btn-success" type="submit">✅ Xong</button></form>
+              <form method="POST" action="/admin/orders/<%=o.id%>/reject"><button class="btn btn-sm btn-danger" type="submit">❌ Hủy</button></form>
             </td>
           </tr>
           <%})%>
         </table>
-        <%if(orders.length===0){%><div style="text-align:center;padding:16px;color:var(--text2)">Không có đơn hàng nào</div><%}%>
+        <%if(orders.length===0){%><div style="text-align:center;padding:14px;color:var(--text2)">Không có đơn hàng</div><%}%>
       </div>
       <div class="card">
-        <div class="card-title">📋 Danh sách sản phẩm</div>
+        <div class="card-title">📋 Sản phẩm</div>
         <table>
           <tr><th>Tên</th><th>Giá N</th><th>Giá V</th><th>Kho</th><th>Trạng thái</th><th></th></tr>
           <%products.forEach(p=>{%>
           <tr>
             <td><%=p.name%></td>
-            <td style="color:#fbbf24"><%=p.price_ncoin>0?p.price_ncoin.toLocaleString('vi-VN'):'—'%></td>
-            <td style="color:#60a5fa"><%=p.price_vcoin>0?p.price_vcoin.toLocaleString('vi-VN'):'—'%></td>
+            <td><%=p.price_ncoin>0?p.price_ncoin.toLocaleString('vi-VN'):'—'%></td>
+            <td><%=p.price_vcoin>0?p.price_vcoin.toLocaleString('vi-VN'):'—'%></td>
             <td><%=p.stock===-1?'∞':p.stock%></td>
             <td><%if(p.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
             <td><form method="POST" action="/admin/products/<%=p.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=p.active?'Tắt':'Bật'%></button></form></td>
@@ -171,13 +233,17 @@
           <div class="fg"><label>Phần thưởng hạng 2 (đ)</label><input name="weekly_reward_2" type="number" value="<%=settings.weekly_reward_2||30000%>"></div>
           <div class="fg"><label>Phần thưởng hạng 3 (đ)</label><input name="weekly_reward_3" type="number" value="<%=settings.weekly_reward_3||20000%>"></div>
           <div class="fg"><label>Bật/tắt đua top</label>
-          <select name="ranking_enabled"><option value="1" <%=settings.ranking_enabled==='1'?'selected':''%>>Bật</option><option value="0" <%=settings.ranking_enabled!=='1'?'selected':''%>>Tắt</option></select></div>
+            <select name="ranking_enabled">
+              <option value="1" <%=settings.ranking_enabled==='1'?'selected':''%>>Bật</option>
+              <option value="0" <%=settings.ranking_enabled!=='1'?'selected':''%>>Tắt</option>
+            </select>
+          </div>
           <button class="btn btn-primary" type="submit">💾 Lưu</button>
         </form>
       </div>
     </div>
 
-    <!-- USERS & IP -->
+    <!-- USERS -->
     <div class="tab-panel" id="tab-users">
       <div class="card">
         <div class="card-title">👥 Danh sách users</div>
@@ -187,10 +253,10 @@
           <tr>
             <td style="color:var(--text2)"><%=u.id%></td>
             <td><b><%=u.username%></b></td>
-            <td style="color:#fbbf24"><%=u.ncoin.toLocaleString('vi-VN')%></td>
-            <td style="color:#60a5fa"><%=u.vcoin.toLocaleString('vi-VN')%></td>
+            <td><span class="coin-wrap"><span class="ni sm">N</span><%=u.ncoin.toLocaleString('vi-VN')%></span></td>
+            <td><span class="coin-wrap"><span class="vi sm">V</span><%=u.vcoin.toLocaleString('vi-VN')%></span></td>
             <td>Lv.<%=u.level%></td>
-            <td style="font-size:11px;color:var(--text2)"><%=u.reg_ip||'—'%></td>
+            <td><span class="ip-badge"><%=u.reg_ip||'—'%></span></td>
             <td><a href="/admin/user/<%=u.id%>/ips" class="btn btn-sm btn-outline">🔍 Xem IP</a></td>
           </tr>
           <%})%>
@@ -198,26 +264,70 @@
       </div>
     </div>
 
-    <!-- ANNOUNCEMENTS -->
-    <div class="tab-panel" id="tab-announce">
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title">➕ Thêm thông báo</div>
-        <form method="POST" action="/admin/announcements" style="display:flex;gap:8px">
-          <input name="content" placeholder="Nội dung thông báo..." style="flex:1;padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)" required>
+    <!-- CONTENT -->
+    <div class="tab-panel" id="tab-content">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">📢 Thông báo banner</div>
+        <form method="POST" action="/admin/announcements" style="display:flex;gap:8px;margin-bottom:12px">
+          <input name="content" placeholder="Nội dung thông báo..." style="flex:1;<%=inp%>" required>
           <button class="btn btn-primary" type="submit">Thêm</button>
         </form>
-      </div>
-      <div class="card">
-        <div class="card-title">📢 Danh sách thông báo</div>
         <table>
           <tr><th>Nội dung</th><th>Trạng thái</th><th></th></tr>
           <%announcements.forEach(a=>{%>
           <tr>
-            <td><%=a.content%></td>
-            <td><%if(a.active){%><span class="badge badge-success">Hiển thị</span><%}else{%><span class="badge">Ẩn</span><%}%></td>
+            <td style="font-size:13px"><%=a.content%></td>
+            <td><%if(a.active){%><span class="badge badge-success">Hiện</span><%}else{%><span class="badge">Ẩn</span><%}%></td>
             <td style="display:flex;gap:4px">
               <form method="POST" action="/admin/announcements/<%=a.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=a.active?'Ẩn':'Hiện'%></button></form>
               <form method="POST" action="/admin/announcements/<%=a.id%>/delete"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
+            </td>
+          </tr>
+          <%})%>
+        </table>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">🔔 Popup thông báo (1 popup active tại 1 thời điểm)</div>
+        <form method="POST" action="/admin/popups" style="display:grid;gap:8px;margin-bottom:12px">
+          <input name="title" placeholder="Tiêu đề popup" style="<%=inp%>" required>
+          <textarea name="content" placeholder="Nội dung (hỗ trợ xuống dòng)" rows="4" style="<%=inp%>;resize:vertical" required></textarea>
+          <button class="btn btn-primary" style="width:fit-content" type="submit">➕ Tạo popup</button>
+        </form>
+        <table>
+          <tr><th>Tiêu đề</th><th>Trạng thái</th><th></th></tr>
+          <%popups.forEach(p=>{%>
+          <tr>
+            <td><%=p.title%></td>
+            <td><%if(p.active){%><span class="badge badge-success">Active</span><%}else{%><span class="badge">Tắt</span><%}%></td>
+            <td style="display:flex;gap:4px">
+              <form method="POST" action="/admin/popups/<%=p.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=p.active?'Tắt':'Bật'%></button></form>
+              <form method="POST" action="/admin/popups/<%=p.id%>/delete"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
+            </td>
+          </tr>
+          <%})%>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📜 Quy định</div>
+        <form method="POST" action="/admin/regulations" style="display:grid;gap:8px;margin-bottom:12px">
+          <div style="display:flex;gap:8px">
+            <input name="title" placeholder="Tiêu đề" style="flex:1;<%=inp%>" required>
+            <input name="sort_order" type="number" placeholder="Thứ tự" style="width:80px;<%=inp%>" value="0">
+          </div>
+          <textarea name="content" placeholder="Nội dung quy định..." rows="4" style="<%=inp%>;resize:vertical" required></textarea>
+          <button class="btn btn-primary" style="width:fit-content" type="submit">➕ Thêm quy định</button>
+        </form>
+        <table>
+          <tr><th>Tiêu đề</th><th>Thứ tự</th><th>Trạng thái</th><th></th></tr>
+          <%regs.forEach(r=>{%>
+          <tr>
+            <td><%=r.title%></td><td style="color:var(--text2)"><%=r.sort_order%></td>
+            <td><%if(r.active){%><span class="badge badge-success">Hiện</span><%}else{%><span class="badge">Ẩn</span><%}%></td>
+            <td style="display:flex;gap:4px">
+              <form method="POST" action="/admin/regulations/<%=r.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=r.active?'Ẩn':'Hiện'%></button></form>
+              <form method="POST" action="/admin/regulations/<%=r.id%>/delete"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
             </td>
           </tr>
           <%})%>
@@ -228,11 +338,16 @@
     <!-- SETTINGS -->
     <div class="tab-panel" id="tab-settings">
       <div class="card">
-        <div class="card-title">⚙️ Cài đặt chung</div>
+        <div class="card-title">⚙️ Cài đặt hệ thống</div>
         <form method="POST" action="/admin/settings">
           <div class="fg"><label>Ncoin rút tối thiểu</label><input name="withdraw_min" type="number" value="<%=settings.withdraw_min||20000%>"></div>
-          <div class="fg"><label>Thông báo trang rút tiền</label><textarea name="withdraw_notice" rows="3"><%=settings.withdraw_notice||''%></textarea></div>
-          <div class="fg"><label>Thông báo trang nạp Vcoin</label><textarea name="topup_notice" rows="3"><%=settings.topup_notice||''%></textarea></div>
+          <div class="fg"><label>Phí rút lần đầu (đ cố định)</label><input name="withdraw_fee_first" type="number" value="<%=settings.withdraw_fee_first||3000%>"></div>
+          <div class="fg"><label>Phí rút từ lần 2 (%)</label><input name="withdraw_fee_percent" type="number" step="0.1" value="<%=settings.withdraw_fee_percent||1%>"></div>
+          <div class="fg"><label>Vcoin khóa bao nhiêu ngày</label><input name="vcoin_lockdays" type="number" value="<%=settings.vcoin_lockdays||28%>"></div>
+          <div class="fg"><label>Thông báo trang rút tiền</label><textarea name="withdraw_notice" rows="2"><%=settings.withdraw_notice||''%></textarea></div>
+          <div class="fg"><label>Thông tin ngân hàng admin</label><textarea name="admin_bank" rows="3"><%=settings.admin_bank||''%></textarea></div>
+          <div class="fg"><label>Hướng dẫn nạp Vcoin</label><textarea name="topup_guide" rows="5"><%=settings.topup_guide||''%></textarea></div>
+          <div class="fg"><label>Thông báo trang nạp Vcoin</label><input name="topup_notice" value="<%=settings.topup_notice||''%>"></div>
           <button class="btn btn-primary" type="submit">💾 Lưu cài đặt</button>
         </form>
       </div>
@@ -240,14 +355,16 @@
   </div>
 </div>
 <script>
-function showTab(id) {
+function showTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
-  event.target.classList.add('active');
+  btn.classList.add('active');
 }
-// Hien thi tab theo hash URL
 const hash = location.hash.replace('#','');
-if(hash) { const btn = document.querySelector(`.tab-btn[onclick="showTab('${hash}')"]`); if(btn) showTab(hash), btn.classList.add('active'), document.querySelectorAll('.tab-btn').forEach(b=>{if(b!==btn)b.classList.remove('active')}); }
+if(hash) {
+  const btn = document.querySelector(`.tab-btn[onclick="showTab('${hash}',this)"]`);
+  if(btn) { showTab(hash, btn); }
+}
 </script>
 </body></html>

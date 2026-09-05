@@ -1,35 +1,72 @@
 <!DOCTYPE html><html lang="vi"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lịch Sử - TaskVip</title>
+<title>Lịch Sử - 4ummo</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/coins.css">
 <script src="/js/menu.js" defer></script></head><body>
 <%- include('partials/sidebar',{page:'history',user}) %>
+<%- include('partials/popup') %>
 <div class="main" id="main">
   <%- include('partials/topbar') %>
-  <div class="topbar"><div class="topbar-title">📋 Lịch Sử Giao Dịch</div></div>
+  <div class="topbar"><div class="topbar-title">📋 Lịch Sử</div></div>
   <div class="page">
-    <div class="alert alert-info">ℹ️ Lịch sử giao dịch sẽ tự động xóa sau 30 ngày để tiết kiệm dung lượng.</div>
-    <div class="card">
-      <table>
-        <tr><th>Thời gian</th><th>Loại</th><th>Số lượng</th><th>Mô tả</th></tr>
-        <%transactions.forEach(t=>{%>
-        <tr>
-          <td style="color:var(--text2)"><%=new Date(parseInt(t.created_at)).toLocaleString('vi-VN')%></td>
-          <td><%if(t.type==='earn'){%><span class="badge badge-success">⚡ Vượt link</span>
-          <%}else if(t.type==='withdraw'){%><span class="badge badge-warning">💸 Rút tiền</span>
-          <%}else if(t.type==='topup'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">💎 Nạp coin</span>
-          <%}else if(t.type==='buy'){%><span class="badge badge-danger">🛍️ Mua hàng</span>
-          <%}else{%><span class="badge"><%=t.type%></span><%}%></td>
-          <td style="font-weight:600;color:<%=t.type==='earn'||t.type==='topup'?'#10b981':'#ef4444'%>">
-            <%=t.type==='earn'||t.type==='topup'?'+':'-'%><%=t.amount.toLocaleString('vi-VN')%>
-            <%=t.coin_type==='vcoin'?'V':'N'%>
-          </td>
-          <td style="color:var(--text2);font-size:12px"><%=t.description%></td>
-        </tr>
-        <%})%>
-      </table>
-      <%if(transactions.length===0){%><div style="text-align:center;padding:30px;color:var(--text2)">Chưa có giao dịch nào</div><%}%>
+    <div class="tabs" style="margin-bottom:16px">
+      <button class="tab-btn active" onclick="showTab('transactions',this)">💳 Giao dịch</button>
+      <button class="tab-btn" onclick="showTab('logins',this)">🔐 Đăng nhập</button>
+    </div>
+
+    <div id="tab-transactions">
+      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Lịch sử giao dịch tự động xóa sau 30 ngày.</div>
+      <div class="card">
+        <table>
+          <tr><th>Thời gian</th><th>Loại</th><th>Số lượng</th><th>Mô tả</th></tr>
+          <%transactions.forEach(t=>{%>
+          <tr>
+            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(t.created_at)).toLocaleString('vi-VN')%></td>
+            <td>
+              <%if(t.type==='earn'){%><span class="badge badge-success">⚡ Vượt link</span>
+              <%}else if(t.type==='withdraw'){%><span class="badge badge-warning">💸 Rút tiền</span>
+              <%}else if(t.type==='topup'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">💎 Nạp</span>
+              <%}else if(t.type==='buy'){%><span class="badge badge-danger">🛍️ Mua</span>
+              <%}else{%><span class="badge"><%=t.type%></span><%}%>
+            </td>
+            <td style="font-weight:600;color:<%=t.type==='earn'||t.type==='topup'?'#10b981':'#ef4444'%>">
+              <%=t.type==='earn'||t.type==='topup'?'+':'-'%><%=t.amount.toLocaleString('vi-VN')%>
+              <span style="font-size:11px"><%=t.coin_type==='vcoin'?'V':'N'%></span>
+            </td>
+            <td style="color:var(--text2);font-size:12px"><%=t.description%></td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(transactions.length===0){%><div style="text-align:center;padding:30px;color:var(--text2)">Chưa có giao dịch nào</div><%}%>
+      </div>
+    </div>
+
+    <div id="tab-logins" style="display:none">
+      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Nhật ký đăng nhập tự động xóa sau 7 ngày.</div>
+      <div class="card">
+        <table>
+          <tr><th>Thời gian</th><th>Địa chỉ IP</th><th>Thiết bị</th></tr>
+          <%loginLogs.forEach(l=>{%>
+          <tr>
+            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(l.created_at)).toLocaleString('vi-VN')%></td>
+            <td><span class="ip-badge"><%=l.ip||'—'%></span></td>
+            <td style="color:var(--text2);font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%=l.user_agent||'—'%></td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(loginLogs.length===0){%><div style="text-align:center;padding:30px;color:var(--text2)">Chưa có nhật ký đăng nhập</div><%}%>
+      </div>
     </div>
   </div>
 </div>
+<script>
+function showTab(id, btn) {
+  document.getElementById('tab-transactions').style.display='none';
+  document.getElementById('tab-logins').style.display='none';
+  document.getElementById('tab-'+id).style.display='block';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
 </body></html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quy Định - 4ummo</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/coins.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'regulations',user}) %>
+<%- include('partials/popup') %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">📜 Quy Định Sử Dụng</div></div>
+  <div class="page">
+    <%if(regs.length===0){%>
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:40px;margin-bottom:12px">📜</div>
+      <div style="color:var(--text2)">Chưa có quy định nào. Admin sẽ cập nhật sớm.</div>
+    </div>
+    <%}%>
+    <%regs.forEach((r,i)=>{%>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--primary2)">
+        <%=i+1%>. <%=r.title%>
+      </div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap"><%=r.content%></div>
+    </div>
+    <%})%>
+  </div>
+</div>
+</body></html>

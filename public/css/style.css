@@ -194,3 +194,29 @@ tr:last-child td{border-bottom:none}
   .page{padding:14px}
   .topbar{padding-left:60px}
 }
+
+/* Icon coin helper */
+.ni2 { width:20px; text-align:center; display:inline-block; }
+
+/* POPUP */
+.popup-overlay {
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.popup-box {
+  background:var(--bg2);border:1px solid var(--card-border);
+  border-radius:20px;padding:28px;max-width:480px;width:100%;
+  position:relative;
+}
+.popup-close {
+  position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.08);
+  border:none;color:var(--text2);width:30px;height:30px;border-radius:50%;
+  cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+}
+.popup-title { font-size:18px;font-weight:700;margin-bottom:10px; }
+.popup-content { font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:16px; }
+.popup-footer { display:flex;justify-content:space-between;align-items:center;gap:10px; }
+.popup-no-show { font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:6px; }
+
+/* IP badge */
+.ip-badge { font-size:11px;background:rgba(255,255,255,0.06);border:1px solid var(--card-border);padding:3px 8px;border-radius:20px;color:var(--text2);font-family:monospace; }

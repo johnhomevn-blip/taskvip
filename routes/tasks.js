@@ -32,7 +32,7 @@ router.get('/tasks', async (req, res) => {
   }));
   const uncategorized = tasksWithInfo.filter(t => !t.category_id);
 
-  res.render('tasks', { user, grouped, uncategorized, multiplier, secondsUntilReset, announcements,
+  res.render('tasks', { userIP: req.ip, user, grouped, uncategorized, multiplier, secondsUntilReset, announcements,
     error: req.query.error || null, done: req.query.done || null });
 });
 

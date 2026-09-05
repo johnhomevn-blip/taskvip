@@ -1,95 +1,90 @@
 <!DOCTYPE html><html lang="vi"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rút Tiền - TaskVip</title>
-<link rel="stylesheet" href="/css/style.css">
+<title>Rút Tiền - 4ummo</title>
+<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/coins.css">
 <script src="/js/menu.js" defer></script></head><body>
-<%- include('partials/sidebar',{page:'wallet',user}) %>
-<div class="main" id="main">
-  <%- include('partials/topbar') %>
-  <div class="topbar"><div class="topbar-title">💸 Rút Tiền</div></div>
-  <div class="page">
-    <%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
-    <%if(ok==='1'){%><div class="alert alert-success">✅ Yêu cầu rút tiền đã gửi, chờ admin duyệt!</div><%}%>
-    <%if(ok==='profile'){%><div class="alert alert-success">✅ Cập nhật thông tin thành công!</div><%}%>
+<%- include('partials/sidebar',{page:'wallet',user}) %><%- include('partials/popup') %>
+<div class="main" id="main"><%- include('partials/topbar') %>
+<div class="topbar"><div class="topbar-title">💸 Rút Tiền</div></div>
+<div class="page">
+<%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
+<%if(ok==='1'){%><div class="alert alert-success">✅ Yêu cầu rút tiền đã gửi!</div><%}%>
+<%if(ok==='profile'){%><div class="alert alert-success">✅ Cập nhật thông tin thành công!</div><%}%>
+<%if(settings.withdraw_notice){%><div class="alert alert-info">ℹ️ <%=settings.withdraw_notice%></div><%}%>
 
-    <%if(settings.withdraw_notice){%>
-    <div class="alert alert-info">ℹ️ <%=settings.withdraw_notice%></div>
-    <%}%>
-
-    <!-- BALANCE -->
-    <div style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(124,58,237,0.15));border:1px solid rgba(251,191,36,0.2);border-radius:14px;padding:18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
-      <div><div style="font-size:12px;color:var(--text2)">Ncoin Đổi Thưởng</div><div style="font-size:28px;font-weight:800;color:#fbbf24"><%=user.ncoin.toLocaleString('vi-VN')%></div></div>
-      <div style="text-align:right"><div style="font-size:12px;color:var(--text2)">Vcoin VIP</div><div style="font-size:28px;font-weight:800;color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN')%></div></div>
-    </div>
-
-    <div class="grid2">
-      <!-- RUT TIEN -->
-      <div class="card">
-        <div class="card-title">💸 Yêu cầu rút Ncoin</div>
-        <form method="POST" action="/wallet/withdraw">
-          <div class="fg"><label>Số Ncoin muốn rút (tối thiểu <%=(parseInt(settings.withdraw_min)||20000).toLocaleString('vi-VN')%>)</label>
-          <input name="amount" type="number" min="<%=settings.withdraw_min||20000%>" placeholder="Nhập số lượng" required></div>
-          <div class="fg"><label>Phương thức</label>
-          <select name="method" id="method" onchange="toggleDetail(this.value)">
-            <option value="momo">💜 Ví Momo</option>
-            <option value="bank">🏦 Chuyển khoản ngân hàng</option>
-            <option value="phonecard">📱 Thẻ cào điện thoại</option>
-          </select></div>
-          <div id="detail-momo">
-            <div class="fg"><label>Số điện thoại Momo</label><input name="detail" placeholder="09xxxxxxxx" id="detail-input"></div>
-          </div>
-          <div id="detail-bank" style="display:none">
-            <div class="fg"><label>Thông tin ngân hàng</label>
-            <% const bankInfo = [user.bank_name,user.bank_account,user.bank_owner].filter(Boolean).join(' - '); %>
-            <input name="detail" placeholder="NH - Số TK - Tên chủ TK" value="<%=bankInfo%>" id="detail-bank-input"></div>
-          </div>
-          <div id="detail-card" style="display:none">
-            <div class="fg"><label>Nhà mạng và mệnh giá</label><input name="detail" placeholder="Viettel - 50.000đ" id="detail-card-input"></div>
-          </div>
-          <button class="btn btn-primary btn-full" type="submit">📤 Gửi yêu cầu rút tiền</button>
-        </form>
-      </div>
-
-      <!-- PROFILE NGAN HANG -->
-      <div class="card">
-        <div class="card-title">🏦 Thông tin tài khoản ngân hàng</div>
-        <form method="POST" action="/wallet/profile">
-          <div class="fg"><label>Số điện thoại</label><input name="phone" value="<%=user.phone||''%>" placeholder="09xxxxxxxx"></div>
-          <div class="fg"><label>Tên ngân hàng</label><input name="bank_name" value="<%=user.bank_name||''%>" placeholder="VD: Vietcombank, MB Bank..."></div>
-          <div class="fg"><label>Số tài khoản</label><input name="bank_account" value="<%=user.bank_account||''%>" placeholder="Số tài khoản ngân hàng"></div>
-          <div class="fg"><label>Tên chủ tài khoản</label><input name="bank_owner" value="<%=user.bank_owner||''%>" placeholder="Tên đúng trên thẻ ngân hàng"></div>
-          <button class="btn btn-success btn-full" type="submit">💾 Lưu thông tin</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- HISTORY -->
-    <div class="card" style="margin-top:16px">
-      <div class="card-title">📋 Lịch sử rút tiền</div>
-      <table>
-        <tr><th>Ngày</th><th>Số tiền</th><th>Phương thức</th><th>Trạng thái</th></tr>
-        <%history.forEach(h=>{%>
-        <tr>
-          <td><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN')%></td>
-          <td style="color:#fbbf24;font-weight:600">🪙 <%=h.amount.toLocaleString('vi-VN')%></td>
-          <td><%=h.method%></td>
-          <td><%if(h.status==='approved'){%><span class="badge badge-success">✅ Đã duyệt</span><%}else if(h.status==='rejected'){%><span class="badge badge-danger">❌ Từ chối</span><%}else{%><span class="badge badge-warning">⏳ Chờ duyệt</span><%}%></td>
-        </tr>
-        <%})%>
-      </table>
-      <%if(history.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Chưa có lịch sử rút tiền</div><%}%>
-    </div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+  <div style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(124,58,237,0.15));border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:16px">
+    <div style="font-size:12px;color:var(--text2)"><span class="ni sm">N</span> Ncoin đổi thưởng</div>
+    <div style="font-size:26px;font-weight:800;color:#f59e0b;display:flex;align-items:center;gap:6px"><span class="ni">N</span><%=user.ncoin.toLocaleString('vi-VN')%></div>
+  </div>
+  <div style="background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(124,58,237,0.15));border:1px solid rgba(96,165,250,0.2);border-radius:14px;padding:16px">
+    <div style="font-size:12px;color:var(--text2)"><span class="vi sm">V</span> Vcoin đã mở khóa</div>
+    <div style="font-size:26px;font-weight:800;color:#60a5fa;display:flex;align-items:center;gap:6px"><span class="vi">V</span><%=vcoinUnlocked.toLocaleString('vi-VN')%></div>
+    <div style="font-size:11px;color:var(--text2);margin-top:2px">Tổng Vcoin: <%=user.vcoin.toLocaleString('vi-VN')%>V (chờ 28 ngày để mở)</div>
   </div>
 </div>
+
+<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#f59e0b">
+  💡 Phí rút: <%=isFirstWithdraw?`Lần đầu: ${parseInt(settings.withdraw_fee_first||3000).toLocaleString('vi-VN')}đ cố định`:`${settings.withdraw_fee_percent||1}% số tiền rút`%>
+  · Ưu tiên trừ Ncoin trước, hết mới trừ Vcoin đã mở khóa
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <div class="card-title">💸 Gửi yêu cầu rút tiền</div>
+    <form method="POST" action="/wallet/withdraw">
+      <div class="fg"><label>Số tiền muốn rút (tối thiểu <%=(parseInt(settings.withdraw_min)||20000).toLocaleString('vi-VN')%>đ)</label>
+      <input name="amount" type="number" min="<%=settings.withdraw_min||20000%>" placeholder="Nhập số tiền" required></div>
+      <div class="fg"><label>Phương thức nhận tiền</label>
+      <select name="method" id="method-sel" onchange="toggleDetail(this.value)">
+        <option value="momo">💜 Ví Momo</option>
+        <option value="bank">🏦 Chuyển khoản ngân hàng</option>
+        <option value="phonecard">📱 Thẻ cào điện thoại</option>
+      </select></div>
+      <div id="d-momo"><div class="fg"><label>Số điện thoại Momo</label><input name="detail" id="di-momo" placeholder="09xxxxxxxx"></div></div>
+      <div id="d-bank" style="display:none"><div class="fg"><label>Thông tin ngân hàng</label>
+      <input name="detail" id="di-bank" placeholder="NH - Số TK - Tên chủ TK" value="<%=[user.bank_name,user.bank_account,user.bank_owner].filter(Boolean).join(' - ')%>"></div></div>
+      <div id="d-card" style="display:none"><div class="fg"><label>Nhà mạng và mệnh giá</label><input name="detail" id="di-card" placeholder="Viettel - 50.000đ"></div></div>
+      <button class="btn btn-primary btn-full" type="submit">📤 Gửi yêu cầu rút tiền</button>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-title">🏦 Thông tin tài khoản ngân hàng</div>
+    <form method="POST" action="/wallet/profile">
+      <div class="fg"><label>Số điện thoại</label><input name="phone" value="<%=user.phone||''%>" placeholder="09xxxxxxxx"></div>
+      <div class="fg"><label>Tên ngân hàng</label><input name="bank_name" value="<%=user.bank_name||''%>" placeholder="Vietcombank, MB Bank..."></div>
+      <div class="fg"><label>Số tài khoản</label><input name="bank_account" value="<%=user.bank_account||''%>" placeholder="Số tài khoản"></div>
+      <div class="fg"><label>Tên chủ tài khoản</label><input name="bank_owner" value="<%=user.bank_owner||''%>" placeholder="Tên trên thẻ ngân hàng"></div>
+      <button class="btn btn-success btn-full" type="submit">💾 Lưu thông tin</button>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <div class="card-title">📋 Lịch sử rút tiền</div>
+  <table>
+    <tr><th>Ngày</th><th>Số tiền</th><th>Phí</th><th>Thực nhận</th><th>Phương thức</th><th>Trạng thái</th></tr>
+    <%history.forEach(h=>{%>
+    <tr>
+      <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN')%></td>
+      <td><span class="coin-wrap"><span class="ni sm">N</span><%=h.amount.toLocaleString('vi-VN')%></span></td>
+      <td style="color:#ef4444;font-size:12px">-<%=(h.fee||0).toLocaleString('vi-VN')%></td>
+      <td style="color:#10b981;font-weight:600"><%=(h.amount-(h.fee||0)).toLocaleString('vi-VN')%>đ</td>
+      <td><%=h.method%></td>
+      <td><%if(h.status==='approved'){%><span class="badge badge-success">✅ Duyệt</span><%}else if(h.status==='rejected'){%><span class="badge badge-danger">❌ Từ chối</span><%}else{%><span class="badge badge-warning">⏳ Chờ</span><%}%></td>
+    </tr>
+    <%})%>
+  </table>
+  <%if(history.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Chưa có lịch sử rút tiền</div><%}%>
+</div>
+</div></div>
 <script>
-function toggleDetail(v) {
-  document.getElementById('detail-momo').style.display=v==='momo'?'block':'none';
-  document.getElementById('detail-bank').style.display=v==='bank'?'block':'none';
-  document.getElementById('detail-card').style.display=v==='phonecard'?'block':'none';
-  ['detail-input','detail-bank-input','detail-card-input'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.name=el.parentElement.parentElement.style.display!=='none'?'detail':'';
-  });
+function toggleDetail(v){
+  ['momo','bank','card'].forEach(t=>{document.getElementById('d-'+t).style.display='none';});
+  document.getElementById('d-'+(v==='phonecard'?'card':v)).style.display='block';
+  ['di-momo','di-bank','di-card'].forEach(id=>{const el=document.getElementById(id);if(el)el.removeAttribute('name');});
+  const active=v==='momo'?'di-momo':v==='bank'?'di-bank':'di-card';
+  document.getElementById(active).name='detail';
 }
 </script>
 </body></html>

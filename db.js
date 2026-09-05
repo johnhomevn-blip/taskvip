@@ -34,6 +34,15 @@ async function init() {
       created_at BIGINT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS providers (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      api_key TEXT DEFAULT '',
+      api_endpoint TEXT DEFAULT '',
+      active INTEGER DEFAULT 1,
+      created_at BIGINT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS tasks (
       id SERIAL PRIMARY KEY,
       category_id INTEGER REFERENCES task_categories(id),
@@ -81,6 +90,7 @@ async function init() {
       detail TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       note TEXT DEFAULT '',
+      fee INTEGER DEFAULT 0,
       created_at BIGINT NOT NULL,
       processed_at BIGINT
     );
@@ -91,9 +101,10 @@ async function init() {
       amount INTEGER NOT NULL,
       coin_type TEXT NOT NULL DEFAULT 'vcoin',
       note TEXT DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'pending',
+      status TEXT NOT NULL DEFAULT 'approved',
+      topup_at BIGINT NOT NULL,
+      withdrawable_at BIGINT NOT NULL,
       created_at BIGINT NOT NULL,
-      processed_at BIGINT,
       admin_id INTEGER
     );
 
@@ -104,7 +115,6 @@ async function init() {
       price_ncoin INTEGER DEFAULT 0,
       price_vcoin INTEGER DEFAULT 0,
       stock INTEGER DEFAULT -1,
-      image_url TEXT DEFAULT '',
       active INTEGER DEFAULT 1,
       created_at BIGINT NOT NULL
     );
@@ -131,9 +141,34 @@ async function init() {
       created_at BIGINT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS login_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      ip TEXT DEFAULT '',
+      user_agent TEXT DEFAULT '',
+      created_at BIGINT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS announcements (
       id SERIAL PRIMARY KEY,
       content TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS popups (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS regulations (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
       active INTEGER NOT NULL DEFAULT 1,
       created_at BIGINT NOT NULL
     );
@@ -158,14 +193,27 @@ async function init() {
     INSERT INTO settings VALUES ('withdraw_min','20000') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('withdraw_notice','Rút tiền sẽ được xử lý trong 24h. Vui lòng cập nhật đúng thông tin ngân hàng trước khi rút.') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('topup_notice','Liên hệ admin qua Telegram để nạp Vcoin. Admin sẽ xác nhận và cộng coin trong vòng 15 phút.') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('topup_guide','Bước 1: Chuyển khoản đến tài khoản admin\nBước 2: Ghi nội dung NapVcoin_[username]\nBước 3: Liên hệ admin gửi bill\nBước 4: Admin cộng Vcoin trong 15 phút') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('admin_bank','Chưa cập nhật thông tin ngân hàng admin') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('ranking_enabled','1') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('vcoin_lockdays','28') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_first','3000') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_percent','1') ON CONFLICT DO NOTHING;
 
     INSERT INTO task_categories (name, icon, sort_order, active, created_at)
     VALUES ('Link Rút Gọn', '🔗', 1, 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     ON CONFLICT DO NOTHING;
+
+    INSERT INTO providers (name, api_key, api_endpoint, active, created_at)
+    VALUES ('link4m', '', 'https://link4m.co/api', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO providers (name, api_key, api_endpoint, active, created_at)
+    VALUES ('site2s', '', 'https://site2s.com/api', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    ON CONFLICT DO NOTHING;
   `);
 
-  // Them cot moi neu chua co (cho truong hop bang da ton tai tu phien ban cu)
+  // Migration: them cac cot moi neu chua co
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS ncoin INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS vcoin INTEGER NOT NULL DEFAULT 0;
@@ -180,6 +228,7 @@ async function init() {
     ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS fingerprint TEXT;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS category_id INTEGER;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS ip_daily_limit INTEGER DEFAULT 2;
+    ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS fee INTEGER DEFAULT 0;
   `);
 
   console.log('Database san sang');
@@ -192,3 +241,13 @@ pool.get = async (t, p) => (await pool.query(t, p)).rows[0] || null;
 pool.run = async (t, p) => { const r = await pool.query(t, p); return { changes: r.rowCount, lastID: r.rows[0]?.id }; };
 
 module.exports = pool;
+// Tu dong cap nhat API key cho providers tu environment variables
+async function updateProviderKeys() {
+  if (process.env.LINK4M_API_KEY) {
+    await pool.query("UPDATE providers SET api_key=$1 WHERE name='link4m' AND (api_key='' OR api_key IS NULL)", [process.env.LINK4M_API_KEY]);
+  }
+  if (process.env.SITE2S_API_KEY) {
+    await pool.query("UPDATE providers SET api_key=$1 WHERE name='site2s' AND (api_key='' OR api_key IS NULL)", [process.env.SITE2S_API_KEY]);
+  }
+}
+setTimeout(updateProviderKeys, 2000);

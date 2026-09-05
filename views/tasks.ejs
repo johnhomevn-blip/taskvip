@@ -1,15 +1,20 @@
 <!DOCTYPE html><html lang="vi"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nhiệm Vụ - TaskVip</title>
+<title>Nhiệm Vụ - 4ummo</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/coins.css">
 <script src="/js/menu.js" defer></script></head><body>
 <%- include('partials/sidebar',{page:'tasks',user}) %>
+<%- include('partials/popup') %>
 <div class="main" id="main">
   <%- include('partials/topbar') %>
-  <div class="topbar"><div class="topbar-title">⚡ Nhiệm Vụ Vượt Link</div></div>
+  <div class="topbar">
+    <div class="topbar-title">⚡ Nhiệm Vụ Vượt Link</div>
+    <span class="ip-badge">🌐 <%=userIP%></span>
+  </div>
   <div class="page">
     <%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
-    <%if(done){%><div class="alert alert-success">✅ Hoàn thành! Ncoin đã được cộng vào tài khoản.</div><%}%>
+    <%if(done){%><div class="alert alert-success">✅ Hoàn thành! Ncoin đã cộng vào tài khoản.</div><%}%>
     <%announcements.forEach(a=>{%><div class="announce">📢 <%=a.content%></div><%})%>
 
     <div class="multiplier-bar">
@@ -24,11 +29,9 @@
       </div>
     </div>
 
-    <% grouped.forEach(cat=>{if(cat.tasks.length===0)return; %>
+    <%grouped.forEach(cat=>{if(!cat.tasks||cat.tasks.length===0)return;%>
     <div style="margin-bottom:20px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
-        <span><%=cat.icon%></span> <%=cat.name%>
-      </div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px"><%=cat.icon%> <%=cat.name%></div>
       <div class="task-grid">
         <%cat.tasks.forEach(task=>{%>
         <div class="task-card">
@@ -38,12 +41,10 @@
           </div>
           <form method="POST" action="/tasks/<%=task.id%>/start">
             <input type="hidden" name="fingerprint" class="fp-input">
-            <button class="btn-task" <%=task.remaining<=0?'disabled':''%>>
-              <%=task.remaining<=0?'🔒 Hết lượt hôm nay':'▶ Lấy link vượt'%>
-            </button>
+            <button class="btn-task" <%=task.remaining<=0?'disabled':''%>><%=task.remaining<=0?'🔒 Hết lượt':'▶ Lấy link vượt'%></button>
           </form>
           <div class="task-footer">
-            <div class="task-stat-item"><div class="tsv">🪙<%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin nhận</div></div>
+            <div class="task-stat-item"><div class="tsv"><span class="ni sm">N</span><%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin</div></div>
             <div class="task-stat-item"><div class="tsv">⭐<%=task.exp_reward%></div><div class="tsl">EXP</div></div>
             <div class="task-stat-item"><div class="tsv"><%=task.remaining%>/<%=task.daily_limit%></div><div class="tsl">Lượt còn</div></div>
           </div>
@@ -53,7 +54,7 @@
     </div>
     <%})%>
 
-    <% if(uncategorized.length>0){%>
+    <%if(uncategorized&&uncategorized.length>0){%>
     <div class="task-grid">
       <%uncategorized.forEach(task=>{%>
       <div class="task-card">
@@ -63,7 +64,7 @@
           <button class="btn-task" <%=task.remaining<=0?'disabled':''%>><%=task.remaining<=0?'🔒 Hết lượt':'▶ Lấy link vượt'%></button>
         </form>
         <div class="task-footer">
-          <div class="task-stat-item"><div class="tsv">🪙<%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin</div></div>
+          <div class="task-stat-item"><div class="tsv"><span class="ni sm">N</span><%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin</div></div>
           <div class="task-stat-item"><div class="tsv">⭐<%=task.exp_reward%></div><div class="tsl">EXP</div></div>
           <div class="task-stat-item"><div class="tsv"><%=task.remaining%>/<%=task.daily_limit%></div><div class="tsl">Lượt còn</div></div>
         </div>
@@ -71,22 +72,18 @@
       <%})%>
     </div>
     <%}%>
-
-    <%if(grouped.every(g=>g.tasks.length===0)&&uncategorized.length===0){%>
-    <div class="card" style="text-align:center;padding:40px">
-      <div style="font-size:40px;margin-bottom:12px">🔍</div>
-      <div style="color:var(--text2)">Chưa có nhiệm vụ nào. Quay lại sau nhé!</div>
-    </div>
+    <%if(grouped.every(g=>!g.tasks||g.tasks.length===0)&&(!uncategorized||uncategorized.length===0)){%>
+    <div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">🔍</div><div style="color:var(--text2)">Chưa có nhiệm vụ nào!</div></div>
     <%}%>
   </div>
 </div>
 <script>
 let s=<%=secondsUntilReset%>;
 const el=document.getElementById('cd');
-function fmt(x){const h=Math.floor(x/3600),m=Math.floor((x%3600)/60),sec=x%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
-el.textContent=fmt(s);setInterval(()=>{if(s>0){s--;el.textContent=fmt(s);}},1000);
+function fmt(x){const h=Math.floor(x/3600),m=Math.floor((x%3600)/60),sc=x%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`}
+if(el){el.textContent=fmt(s);setInterval(()=>{if(s>0){s--;el.textContent=fmt(s);}},1000);}
 const fp=[navigator.userAgent,screen.width+'x'+screen.height,navigator.language].join('|');
 const fpVal=btoa(fp).slice(0,32);
-document.querySelectorAll('.fp-input').forEach(el=>el.value=fpVal);
+document.querySelectorAll('.fp-input').forEach(e=>e.value=fpVal);
 </script>
 </body></html>

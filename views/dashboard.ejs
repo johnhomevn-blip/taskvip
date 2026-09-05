@@ -1,16 +1,20 @@
 <!DOCTYPE html><html lang="vi"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard - TaskVip</title>
+<title>Dashboard - 4ummo</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/coins.css">
 <script src="/js/menu.js" defer></script></head><body>
 <%- include('partials/sidebar',{page:'dashboard',user}) %>
+<%- include('partials/popup') %>
 <div class="main" id="main">
   <%- include('partials/topbar') %>
-  <div class="topbar"><div class="topbar-title">📊 Dashboard</div></div>
+  <div class="topbar">
+    <div class="topbar-title">📊 Dashboard</div>
+    <span class="ip-badge">🌐 <%=user.reg_ip||'—'%></span>
+  </div>
   <div class="page">
-    <% announcements.forEach(a=>{%><div class="announce">📢 <%=a.content%></div><%})%>
+    <%announcements.forEach(a=>{%><div class="announce">📢 <%=a.content%></div><%})%>
 
-    <!-- LEVEL BAR -->
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <span class="level-tag" style="background:<%=tag.bg%>;color:#fff;font-size:13px;padding:4px 12px">
@@ -20,8 +24,8 @@
       </div>
       <div class="exp-bar-wrap">
         <div class="exp-bar-info">
-          <span>Trong level: <%=levelInfo.expInLevel.toLocaleString('vi-VN')%> / <%=levelInfo.expNeeded>0?levelInfo.expNeeded.toLocaleString('vi-VN'):'MAX'%> EXP</span>
-          <% if(levelInfo.level<50){%><span>→ Level <%=levelInfo.level+1%></span><%}%>
+          <span><%=levelInfo.expInLevel.toLocaleString('vi-VN')%> / <%=levelInfo.expNeeded>0?levelInfo.expNeeded.toLocaleString('vi-VN'):'MAX'%> EXP</span>
+          <%if(levelInfo.level<50){%><span>→ Level <%=levelInfo.level+1%></span><%}%>
         </div>
         <div class="exp-bar-track">
           <div class="exp-bar-fill" style="width:<%=levelInfo.expNeeded>0?Math.min(100,Math.round(levelInfo.expInLevel/levelInfo.expNeeded*100)):100%>%"></div>
@@ -29,17 +33,16 @@
       </div>
     </div>
 
-    <!-- STAT CARDS -->
     <div class="grid4" style="margin-bottom:16px">
       <div class="stat-card">
-        <div class="stat-label">🪙 Ncoin hiện có</div>
-        <div class="stat-value" style="color:#fbbf24"><%=user.ncoin.toLocaleString('vi-VN')%></div>
-        <div class="stat-sub">Có thể rút ra tiền thật</div>
+        <div class="stat-label"><span class="ni">N</span> Ncoin</div>
+        <div class="stat-value" style="color:#f59e0b"><%=user.ncoin.toLocaleString('vi-VN')%></div>
+        <div class="stat-sub">Rút ra tiền thật</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">💎 Vcoin</div>
+        <div class="stat-label"><span class="vi">V</span> Vcoin</div>
         <div class="stat-value" style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN')%></div>
-        <div class="stat-sub">Dùng mua dịch vụ</div>
+        <div class="stat-sub">Mua dịch vụ</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">⚡ Link vượt tuần</div>
@@ -47,18 +50,17 @@
         <div class="stat-sub"><%=monthCount%> trong tháng</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">🪙 Ncoin tuần</div>
+        <div class="stat-label"><span class="ni sm">N</span> Ncoin tuần</div>
         <div class="stat-value" style="color:#a78bfa"><%=weekNcoin.toLocaleString('vi-VN')%></div>
-        <div class="stat-sub"><%=monthNcoin.toLocaleString('vi-VN')%> trong tháng</div>
+        <div class="stat-sub"><%=monthNcoin.toLocaleString('vi-VN')%> tháng</div>
       </div>
     </div>
 
-    <!-- CHART -->
     <div class="card" style="margin-bottom:16px">
       <div class="card-title">📈 Thu nhập Ncoin 7 ngày gần nhất</div>
       <div class="chart-bars">
-        <% const mx=Math.max(...days.map(d=>d.total),1); %>
-        <% days.forEach(d=>{%>
+        <%const mx=Math.max(...days.map(d=>d.total),1);%>
+        <%days.forEach(d=>{%>
         <div class="chart-col">
           <div class="chart-bar" style="height:<%=Math.max(3,Math.round(d.total/mx*100))%>%" title="<%=d.date%>: <%=d.total.toLocaleString('vi-VN')%>N"></div>
           <div class="chart-lbl"><%=d.date%></div>
@@ -66,7 +68,6 @@
       </div>
     </div>
 
-    <!-- QUICK ACTIONS -->
     <div class="grid2">
       <a href="/tasks" class="btn btn-primary" style="padding:14px;font-size:14px">⚡ Vượt Link Ngay</a>
       <a href="/ranking" class="btn" style="background:linear-gradient(135deg,#f59e0b,#ec4899);color:#fff;padding:14px;font-size:14px">🏆 Bảng Xếp Hạng</a>

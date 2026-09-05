@@ -1,0 +1,42 @@
+<%
+// Kiem tra xem co popup active khong
+// popup duoc truyen vao tu route
+if (typeof activePopup !== 'undefined' && activePopup) {
+%>
+<div class="popup-overlay" id="popupOverlay" onclick="closePopupOutside(event)">
+  <div class="popup-box">
+    <button class="popup-close" onclick="closePopup()">✕</button>
+    <div class="popup-title"><%=activePopup.title%></div>
+    <div class="popup-content"><%=activePopup.content.replace(/\n/g,'<br>')%></div>
+    <div class="popup-footer">
+      <label class="popup-no-show">
+        <input type="checkbox" id="noShowToday" onchange="handleNoShow(this)">
+        Không hiện trong 1 ngày
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="closePopup()">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const key = 'popup_hidden_<%=activePopup.id%>';
+  const hidden = localStorage.getItem(key);
+  if (hidden && Date.now() < parseInt(hidden)) {
+    document.getElementById('popupOverlay').style.display='none';
+  }
+})();
+function closePopup() {
+  document.getElementById('popupOverlay').style.display='none';
+}
+function closePopupOutside(e) {
+  if (e.target === document.getElementById('popupOverlay')) closePopup();
+}
+function handleNoShow(cb) {
+  if (cb.checked) {
+    localStorage.setItem('popup_hidden_<%=activePopup.id%>', Date.now() + 24*60*60*1000);
+  } else {
+    localStorage.removeItem('popup_hidden_<%=activePopup.id%>');
+  }
+}
+</script>
+<% } %>
