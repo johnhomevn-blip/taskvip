@@ -240,6 +240,16 @@ async function init() {
     ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS fee INTEGER DEFAULT 0;
   `);
 
+  // Don dep cac dong providers bi trung lap (bug cu do thieu rang buoc unique)
+  // Giu lai dong co API Key da dien, neu khong co API Key thi giu dong id nho nhat
+  await pool.query(`
+    DELETE FROM providers WHERE id NOT IN (
+      SELECT DISTINCT ON (name) id FROM providers
+      ORDER BY name, (api_key <> '') DESC, id ASC
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS providers_name_key ON providers (name);
+  `);
+
   console.log('Database san sang');
 }
 
