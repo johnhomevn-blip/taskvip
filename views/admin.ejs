@@ -24,6 +24,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
       <button class="tab-btn" onclick="showTab('shop',this)">🛍️ Sản phẩm</button>
       <button class="tab-btn" onclick="showTab('ranking',this)">🏆 Đua top</button>
       <button class="tab-btn" onclick="showTab('users',this)">👥 Users & IP</button>
+      <button class="tab-btn" onclick="showTab('ipmonitor',this)">🕵️ Giám sát IP</button>
       <button class="tab-btn" onclick="showTab('content',this)">📢 Nội dung</button>
       <button class="tab-btn" onclick="showTab('settings',this)">⚙️ Cài đặt</button>
     </div>
@@ -157,20 +158,36 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
 
     <!-- BUFF -->
     <div class="tab-panel" id="tab-buff">
-      <div class="card">
-        <div class="card-title">🎁 Cộng coin cho user (buff top / nạp thủ công)</div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">🎁 Điều chỉnh coin (nhập số âm để trừ, ví dụ -5000)</div>
         <form method="POST" action="/admin/buff" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
           <select name="user_id" style="width:100%;<%=sel%>">
             <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%> (<%=u.ncoin%>N/<%=u.vcoin%>V)</option><%})%>
           </select></div>
-          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px"><span class="ni sm">N</span> Ncoin cộng thêm</label>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px"><span class="ni sm">N</span> Ncoin (+/-)</label>
           <input name="ncoin_amount" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
-          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px"><span class="vi sm">V</span> Vcoin cộng thêm</label>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px"><span class="vi sm">V</span> Vcoin (+/-)</label>
           <input name="vcoin_amount" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Ghi chú</label>
           <input name="note" placeholder="Lý do..." style="width:100%;<%=inp%>"></div>
-          <div style="align-self:end"><button class="btn btn-primary btn-full" type="submit">🎁 Cộng coin</button></div>
+          <div style="align-self:end"><button class="btn btn-primary btn-full" type="submit">💾 Áp dụng</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🏆 Buff bảng xếp hạng tuần (không ảnh hưởng ví Ncoin thật, chỉ đẩy thứ hạng)</div>
+        <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Dùng để test đua top khi web còn ít user — cộng thẳng vào số liệu tuần hiện tại, không cộng tiền vào ví.</div>
+        <form method="POST" action="/admin/buff-ranking" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
+          <select name="user_id" style="width:100%;<%=sel%>">
+            <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%></option><%})%>
+          </select></div>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Số lượt vượt cộng thêm</label>
+          <input name="task_count_add" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Ncoin hiển thị trên BXH cộng thêm</label>
+          <input name="ncoin_earned_add" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
+          <div style="align-self:end"><button class="btn btn-primary btn-full" type="submit">🏆 Buff BXH</button></div>
         </form>
       </div>
     </div>
@@ -245,10 +262,20 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
 
     <!-- USERS -->
     <div class="tab-panel" id="tab-users">
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">➕ Tạo tài khoản thủ công (để test)</div>
+        <form method="POST" action="/admin/users/create" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
+          <input name="username" placeholder="Tên đăng nhập" style="<%=inp%>" required>
+          <input name="password" placeholder="Mật khẩu (≥6 ký tự)" style="<%=inp%>" required>
+          <input name="ncoin" type="number" placeholder="Ncoin ban đầu" value="0" style="<%=inp%>">
+          <input name="vcoin" type="number" placeholder="Vcoin ban đầu" value="0" style="<%=inp%>">
+          <button class="btn btn-primary" type="submit">➕ Tạo</button>
+        </form>
+      </div>
       <div class="card">
         <div class="card-title">👥 Danh sách users</div>
         <table>
-          <tr><th>ID</th><th>Username</th><th>Ncoin</th><th>Vcoin</th><th>Level</th><th>IP đăng ký</th><th></th></tr>
+          <tr><th>ID</th><th>Username</th><th>Ncoin</th><th>Vcoin</th><th>Level</th><th>IP đăng ký</th><th>Trạng thái</th><th></th></tr>
           <%users.forEach(u=>{%>
           <tr>
             <td style="color:var(--text2)"><%=u.id%></td>
@@ -257,10 +284,47 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><span class="coin-wrap"><span class="vi sm">V</span><%=u.vcoin.toLocaleString('vi-VN')%></span></td>
             <td>Lv.<%=u.level%></td>
             <td><span class="ip-badge"><%=u.reg_ip||'—'%></span></td>
-            <td><a href="/admin/user/<%=u.id%>/ips" class="btn btn-sm btn-outline">🔍 Xem IP</a></td>
+            <td><%if(u.is_banned){%><span class="badge badge-danger">🔒 Đã khóa</span><%}else{%><span class="badge badge-success">✅ Hoạt động</span><%}%></td>
+            <td style="display:flex;gap:4px;flex-wrap:wrap">
+              <a href="/admin/user/<%=u.id%>/ips" class="btn btn-sm btn-outline">🔍 IP</a>
+              <form method="POST" action="/admin/users/<%=u.id%>/ban"><button class="btn btn-sm <%=u.is_banned?'btn-success':'btn-warning'%>" type="submit"><%=u.is_banned?'Mở khóa':'Khóa'%></button></form>
+              <form method="POST" action="/admin/users/<%=u.id%>/delete" onsubmit="return confirm('Xóa vĩnh viễn tài khoản này? Toàn bộ dữ liệu liên quan sẽ mất.')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
+            </td>
           </tr>
           <%})%>
         </table>
+      </div>
+    </div>
+
+    <!-- IP MONITOR -->
+    <div class="tab-panel" id="tab-ipmonitor">
+      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Danh sách 100 lượt vượt link gần nhất kèm IP thật của user. Cột "Cảnh báo" đỏ nghĩa là IP này còn được dùng bởi tài khoản khác — dấu hiệu 1 người dùng nhiều tài khoản.</div>
+      <div class="card">
+        <div class="card-title">🕵️ Nhật ký IP vượt link (100 lượt gần nhất)</div>
+        <table>
+          <tr><th>Thời gian</th><th>User</th><th>Nhiệm vụ</th><th>IP</th><th>Trạng thái</th><th>Cảnh báo</th></tr>
+          <%ipMonitor.forEach(row=>{%>
+          <tr>
+            <td style="color:var(--text2);font-size:11px"><%=new Date(parseInt(row.created_at)).toLocaleString('vi-VN')%></td>
+            <td><b><%=row.username%></b></td>
+            <td style="font-size:12px"><%=row.task_name%></td>
+            <td><span class="ip-badge"><%=row.ip_created||'—'%></span></td>
+            <td>
+              <%if(row.status==='completed'){%><span class="badge badge-success">Hoàn thành</span>
+              <%}else if(row.status==='expired'){%><span class="badge">Hết hạn</span>
+              <%}else{%><span class="badge badge-warning">Đang chờ</span><%}%>
+            </td>
+            <td>
+              <%if(parseInt(row.other_accounts)>0){%>
+              <span class="badge badge-danger">⚠️ <%=row.other_accounts%> tài khoản khác</span>
+              <%}else{%>
+              <span style="color:var(--text2);font-size:11px">—</span>
+              <%}%>
+            </td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(ipMonitor.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Chưa có dữ liệu</div><%}%>
       </div>
     </div>
 

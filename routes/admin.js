@@ -11,12 +11,23 @@ router.get('/admin', async (req, res) => {
   const announcements = await db.q('SELECT * FROM announcements ORDER BY created_at DESC');
   const popups = await db.q('SELECT * FROM popups ORDER BY created_at DESC');
   const regs = await db.q('SELECT * FROM regulations ORDER BY sort_order, id');
-  const users = await db.q('SELECT id, username, ncoin, vcoin, exp, level, reg_ip, created_at FROM users ORDER BY id DESC LIMIT 100');
+  const users = await db.q('SELECT id, username, ncoin, vcoin, exp, level, is_banned, reg_ip, created_at FROM users ORDER BY id DESC LIMIT 100');
   const products = await db.q('SELECT * FROM products ORDER BY id DESC');
   const settings = await db.q('SELECT * FROM settings');
   const s = {}; settings.forEach(x => s[x.key]=x.value);
 
-  res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, settings: s,
+  // Giam sat IP toan he thong: cac lan vuot link gan day + so tai khoan khac dung chung IP
+  const ipMonitor = await db.q(`
+    SELECT ta.id, ta.ip_created, ta.fingerprint, ta.status, ta.created_at,
+    u.username, t.name as task_name,
+    (SELECT COUNT(*) FROM ip_user_map WHERE ip=ta.ip_created AND user_id != ta.user_id) as other_accounts
+    FROM task_attempts ta
+    JOIN users u ON u.id = ta.user_id
+    JOIN tasks t ON t.id = ta.task_id
+    ORDER BY ta.created_at DESC LIMIT 100
+  `);
+
+  res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, settings: s, ipMonitor,
     error: req.query.error||null, ok: req.query.ok||null });
 });
 
@@ -100,26 +111,97 @@ router.post('/admin/withdrawals/:id/:action', async (req, res) => {
   res.redirect('/admin#withdrawals');
 });
 
-// BUFF NCOIN (test/top)
+// DIEU CHINH COIN (cong hoac tru - dung so am de tru)
 router.post('/admin/buff', async (req, res) => {
   const { user_id, ncoin_amount, vcoin_amount, note } = req.body;
   if (!user_id) return res.redirect('/admin?error=Chọn user');
+  const ncoinAmt = parseInt(ncoin_amount) || 0;
+  const vcoinAmt = parseInt(vcoin_amount) || 0;
   const client = await db.connect();
   try {
     await client.query('BEGIN');
-    if (parseInt(ncoin_amount) > 0) {
-      await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [parseInt(ncoin_amount), user_id]);
-      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'topup',$2,'ncoin',$3,$4)`,
-        [user_id, parseInt(ncoin_amount), `Admin cộng Ncoin: ${note||''}`, Date.now()]);
+    if (ncoinAmt !== 0) {
+      await client.query('UPDATE users SET ncoin=GREATEST(ncoin+$1,0) WHERE id=$2', [ncoinAmt, user_id]);
+      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,$2,$3,'ncoin',$4,$5)`,
+        [user_id, ncoinAmt>0?'topup':'buy', Math.abs(ncoinAmt), `Admin ${ncoinAmt>0?'cộng':'trừ'} Ncoin: ${note||''}`, Date.now()]);
     }
-    if (parseInt(vcoin_amount) > 0) {
-      await client.query('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [parseInt(vcoin_amount), user_id]);
-      const lockMs = 28 * 24 * 60 * 60 * 1000;
-      await client.query(`INSERT INTO topups (user_id,amount,coin_type,note,status,topup_at,withdrawable_at,created_at,admin_id) VALUES ($1,$2,'vcoin',$3,'approved',$4,$5,$4,$6)`,
-        [user_id, parseInt(vcoin_amount), note||'Admin cộng', Date.now(), Date.now() + lockMs, req.user.id]);
-      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'topup',$2,'vcoin',$3,$4)`,
-        [user_id, parseInt(vcoin_amount), `Admin cộng Vcoin: ${note||''}`, Date.now()]);
+    if (vcoinAmt !== 0) {
+      await client.query('UPDATE users SET vcoin=GREATEST(vcoin+$1,0) WHERE id=$2', [vcoinAmt, user_id]);
+      if (vcoinAmt > 0) {
+        const lockMs = 28 * 24 * 60 * 60 * 1000;
+        await client.query(`INSERT INTO topups (user_id,amount,coin_type,note,status,topup_at,withdrawable_at,created_at,admin_id) VALUES ($1,$2,'vcoin',$3,'approved',$4,$5,$4,$6)`,
+          [user_id, vcoinAmt, note||'Admin cộng', Date.now(), Date.now() + lockMs, req.user.id]);
+      }
+      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,$2,$3,'vcoin',$4,$5)`,
+        [user_id, vcoinAmt>0?'topup':'buy', Math.abs(vcoinAmt), `Admin ${vcoinAmt>0?'cộng':'trừ'} Vcoin: ${note||''}`, Date.now()]);
     }
+    await client.query('COMMIT');
+  } catch(e) { await client.query('ROLLBACK'); console.error(e); } finally { client.release(); }
+  res.redirect('/admin?ok=1#users');
+});
+
+// BUFF BANG XEP HANG TUAN (cong truc tiep vao weekly_rankings)
+function getWeekStartForBuff() {
+  const now = new Date();
+  const gmt7 = new Date(now.getTime() + now.getTimezoneOffset()*60000 + 7*3600000);
+  const day = gmt7.getDay();
+  gmt7.setDate(gmt7.getDate() - day + (day===0?-6:1));
+  gmt7.setHours(0,0,0,0);
+  return gmt7.getTime() - 7*3600000;
+}
+router.post('/admin/buff-ranking', async (req, res) => {
+  const { user_id, task_count_add, ncoin_earned_add } = req.body;
+  if (!user_id) return res.redirect('/admin?error=Chọn user');
+  const weekStart = getWeekStartForBuff();
+  const tc = parseInt(task_count_add) || 0;
+  const ne = parseInt(ncoin_earned_add) || 0;
+  await db.run(
+    `INSERT INTO weekly_rankings (user_id,week_start,task_count,ncoin_earned) VALUES ($1,$2,$3,$4)
+     ON CONFLICT (user_id,week_start) DO UPDATE SET task_count=GREATEST(weekly_rankings.task_count+$3,0), ncoin_earned=GREATEST(weekly_rankings.ncoin_earned+$4,0)`,
+    [user_id, weekStart, tc, ne]
+  );
+  res.redirect('/admin?ok=1#buff');
+});
+
+// TAO TAI KHOAN THU CONG
+router.post('/admin/users/create', async (req, res) => {
+  const bcrypt = require('bcryptjs');
+  const { username, password, ncoin, vcoin } = req.body;
+  if (!username || !password || password.length < 6) return res.redirect('/admin?error=Thiếu tên đăng nhập hoặc mật khẩu tối thiểu 6 ký tự');
+  const existing = await db.get('SELECT id FROM users WHERE username=$1', [username]);
+  if (existing) return res.redirect('/admin?error=Tên đăng nhập đã tồn tại');
+  const hash = bcrypt.hashSync(password, 10);
+  await db.run(
+    `INSERT INTO users (username,password_hash,ncoin,vcoin,exp,level,is_admin,created_at,reg_ip)
+     VALUES ($1,$2,$3,$4,0,1,0,$5,'admin-created')`,
+    [username, hash, parseInt(ncoin)||0, parseInt(vcoin)||0, Date.now()]
+  );
+  res.redirect('/admin?ok=1#users');
+});
+
+// KHOA / MO KHOA TAI KHOAN
+router.post('/admin/users/:id/ban', async (req, res) => {
+  const u = await db.get('SELECT * FROM users WHERE id=$1', [req.params.id]);
+  if (u) await db.run('UPDATE users SET is_banned=$1 WHERE id=$2', [u.is_banned?0:1, u.id]);
+  res.redirect('/admin?ok=1#users');
+});
+
+// XOA TAI KHOAN (xoa toan bo du lieu lien quan)
+router.post('/admin/users/:id/delete', async (req, res) => {
+  const { id } = req.params;
+  if (parseInt(id) === req.user.id) return res.redirect('/admin?error=Không thể tự xóa tài khoản đang đăng nhập');
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM task_attempts WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM withdrawals WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM topups WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM orders WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM transactions WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM login_logs WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM ip_user_map WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM weekly_rankings WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM users WHERE id=$1', [id]);
     await client.query('COMMIT');
   } catch(e) { await client.query('ROLLBACK'); console.error(e); } finally { client.release(); }
   res.redirect('/admin?ok=1#users');

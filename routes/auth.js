@@ -35,6 +35,8 @@ router.post('/login', async (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash))
     return res.render('login', { error: 'Sai tên đăng nhập hoặc mật khẩu.' });
 
+  if (user.is_banned) return res.render('login', { error: 'Tài khoản của bạn đã bị khóa. Liên hệ admin để biết thêm chi tiết.' });
+
   req.session.userId = user.id;
 
   // Ghi nhat ky dang nhap

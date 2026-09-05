@@ -223,6 +223,7 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_owner TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_ip TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_fingerprint TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned INTEGER DEFAULT 0;
     ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS reward_actual INTEGER DEFAULT 0;
     ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS multiplier NUMERIC(6,4) DEFAULT 1.0;
     ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS fingerprint TEXT;

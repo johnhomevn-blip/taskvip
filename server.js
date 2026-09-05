@@ -6,6 +6,7 @@ const db = require('./db');
 const { getLevelInfo, getLevelTag } = require('./lib/level');
 
 const app = express();
+app.set('trust proxy', 1); // Railway dung reverse proxy, can cai nay de doc dung IP that cua user
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
