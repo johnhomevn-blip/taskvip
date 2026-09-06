@@ -206,8 +206,12 @@ async function init() {
     INSERT INTO settings VALUES ('admin_bank','Chưa cập nhật thông tin ngân hàng admin') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('ranking_enabled','1') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('vcoin_lockdays','28') ON CONFLICT DO NOTHING;
-    INSERT INTO settings VALUES ('withdraw_fee_first','3000') ON CONFLICT DO NOTHING;
-    INSERT INTO settings VALUES ('withdraw_fee_percent','1') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_rookie','3000') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_silver','2500') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_gold','2000') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_platinum','1500') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_diamond','1000') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('withdraw_fee_legend','0') ON CONFLICT DO NOTHING;
 
     INSERT INTO task_categories (name, icon, sort_order, active, created_at)
     VALUES ('Link Rút Gọn', '🔗', 1, 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
@@ -294,6 +298,23 @@ async function init() {
     ALTER TABLE popups ADD COLUMN IF NOT EXISTS active INTEGER NOT NULL DEFAULT 1;
     ALTER TABLE regulations ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
     ALTER TABLE regulations ADD COLUMN IF NOT EXISTS active INTEGER NOT NULL DEFAULT 1;
+  `);
+
+  // Fix danh muc nhiem vu bi nhan ban moi lan deploy (thieu unique constraint, giong bug providers/weekly_rankings)
+  await pool.query(`
+    WITH survivors AS (
+      SELECT name, MIN(id) as keep_id FROM task_categories GROUP BY name
+    )
+    UPDATE tasks
+    SET category_id = s.keep_id
+    FROM task_categories tc
+    JOIN survivors s ON s.name = tc.name
+    WHERE tasks.category_id = tc.id AND tc.id <> s.keep_id;
+
+    DELETE FROM task_categories a USING task_categories b
+      WHERE a.id > b.id AND a.name = b.name;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS task_categories_name_key ON task_categories (name);
   `);
 
   console.log('Database san sang');

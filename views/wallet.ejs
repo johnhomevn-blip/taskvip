@@ -26,7 +26,7 @@
 </div>
 
 <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#f59e0b">
-  💡 Phí rút: <%=isFirstWithdraw?`Lần đầu: ${parseInt(settings.withdraw_fee_first||3000).toLocaleString('vi-VN')}đ cố định`:`${settings.withdraw_fee_percent||1}% số tiền rút`%>
+  💡 Phí rút theo cấp độ hiện tại: <span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:20px;background:<%=tierTag.bg%>;color:#fff;font-weight:600;font-size:12px"><%=tierTag.emoji%> <%=tierLabel%></span> — <b><%=currentFee.toLocaleString('vi-VN')%>đ</b> mỗi lần rút
   · Ưu tiên trừ Ncoin trước, hết mới trừ Vcoin đã mở khóa
 </div>
 

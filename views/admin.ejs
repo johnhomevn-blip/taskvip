@@ -421,8 +421,15 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <div class="card-title">⚙️ Cài đặt hệ thống</div>
         <form method="POST" action="/admin/settings">
           <div class="fg"><label>Ncoin rút tối thiểu</label><input name="withdraw_min" type="number" value="<%=settings.withdraw_min||20000%>"></div>
-          <div class="fg"><label>Phí rút lần đầu (đ cố định)</label><input name="withdraw_fee_first" type="number" value="<%=settings.withdraw_fee_first||3000%>"></div>
-          <div class="fg"><label>Phí rút từ lần 2 (%)</label><input name="withdraw_fee_percent" type="number" step="0.1" value="<%=settings.withdraw_fee_percent||1%>"></div>
+          <div class="card-title" style="margin-top:16px">💸 Phí rút tiền theo cấp độ</div>
+          <div class="grid3" style="margin-bottom:12px">
+            <div class="fg"><label>🔵 Rookie (đ)</label><input name="withdraw_fee_rookie" type="number" value="<%=settings.withdraw_fee_rookie||3000%>"></div>
+            <div class="fg"><label>🌿 Silver (đ)</label><input name="withdraw_fee_silver" type="number" value="<%=settings.withdraw_fee_silver||2500%>"></div>
+            <div class="fg"><label>⭐ Gold (đ)</label><input name="withdraw_fee_gold" type="number" value="<%=settings.withdraw_fee_gold||2000%>"></div>
+            <div class="fg"><label>🔥 Platinum (đ)</label><input name="withdraw_fee_platinum" type="number" value="<%=settings.withdraw_fee_platinum||1500%>"></div>
+            <div class="fg"><label>💎 Diamond (đ)</label><input name="withdraw_fee_diamond" type="number" value="<%=settings.withdraw_fee_diamond||1000%>"></div>
+            <div class="fg"><label>👑 Legend (đ)</label><input name="withdraw_fee_legend" type="number" value="<%=settings.withdraw_fee_legend||0%>"></div>
+          </div>
           <div class="fg"><label>Vcoin khóa bao nhiêu ngày</label><input name="vcoin_lockdays" type="number" value="<%=settings.vcoin_lockdays||28%>"></div>
           <div class="fg"><label>Thông báo trang rút tiền</label><textarea name="withdraw_notice" rows="2"><%=settings.withdraw_notice||''%></textarea></div>
           <div class="fg"><label>Thông tin ngân hàng admin</label><textarea name="admin_bank" rows="3"><%=settings.admin_bank||''%></textarea></div>

@@ -55,7 +55,11 @@ router.post('/admin/providers/:id/toggle', async (req, res) => {
 // CATEGORIES
 router.post('/admin/categories', async (req, res) => {
   const { name, icon, sort_order } = req.body;
-  await db.run('INSERT INTO task_categories (name,icon,sort_order,active,created_at) VALUES ($1,$2,$3,1,$4)', [name, icon||'⚡', parseInt(sort_order)||0, Date.now()]);
+  if (!name || !name.trim()) return res.redirect('/admin?error=Tên danh mục không được để trống');
+  await db.run(
+    'INSERT INTO task_categories (name,icon,sort_order,active,created_at) VALUES ($1,$2,$3,1,$4) ON CONFLICT (name) DO NOTHING',
+    [name.trim(), icon||'⚡', parseInt(sort_order)||0, Date.now()]
+  );
   res.redirect('/admin#tasks');
 });
 router.post('/admin/categories/:id/toggle', async (req, res) => {
@@ -292,7 +296,8 @@ router.post('/admin/regulations/:id/delete', async (req, res) => {
 // SETTINGS
 router.post('/admin/settings', async (req, res) => {
   const fields = ['weekly_reward_1','weekly_reward_2','weekly_reward_3','withdraw_min','withdraw_notice',
-    'withdraw_fee_first','withdraw_fee_percent','topup_notice','topup_guide','admin_bank',
+    'withdraw_fee_rookie','withdraw_fee_silver','withdraw_fee_gold','withdraw_fee_platinum','withdraw_fee_diamond','withdraw_fee_legend',
+    'topup_notice','topup_guide','admin_bank',
     'ranking_enabled','vcoin_lockdays'];
   for (const f of fields) {
     if (req.body[f] !== undefined) await db.run('INSERT INTO settings (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2', [f, req.body[f]]);
