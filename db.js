@@ -256,11 +256,44 @@ async function init() {
     ALTER TABLE topups ADD COLUMN IF NOT EXISTS topup_at BIGINT DEFAULT 0;
     ALTER TABLE topups ADD COLUMN IF NOT EXISTS withdrawable_at BIGINT DEFAULT 0;
     UPDATE topups SET topup_at = created_at WHERE topup_at = 0;
-    UPDATE topups SET withdrawable_at = created_at + (28*24*60*60*1000) WHERE withdrawable_at = 0;
+    UPDATE topups SET withdrawable_at = created_at + 2419200000 WHERE withdrawable_at = 0;
     DELETE FROM weekly_rankings a USING weekly_rankings b
       WHERE a.id > b.id AND a.user_id = b.user_id AND a.week_start = b.week_start;
     CREATE UNIQUE INDEX IF NOT EXISTS weekly_rankings_user_week_key ON weekly_rankings (user_id, week_start);
-    CREATE UNIQUE INDEX IF NOT EXISTS weekly_rankings_user_week_key ON weekly_rankings (user_id, week_start);
+  `);
+
+  // Lop phong thu toan dien: dam bao moi cot co gia tri mac dinh deu ton tai
+  // du bang da duoc tao tu truoc voi schema cu hon (tranh lap lai bug topups/weekly_rankings)
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS exp INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE task_categories ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT '⚡';
+    ALTER TABLE task_categories ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+    ALTER TABLE task_categories ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1;
+    ALTER TABLE providers ADD COLUMN IF NOT EXISTS api_key TEXT DEFAULT '';
+    ALTER TABLE providers ADD COLUMN IF NOT EXISTS api_endpoint TEXT DEFAULT '';
+    ALTER TABLE providers ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1;
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'link4m';
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS exp_reward INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS min_seconds INTEGER NOT NULL DEFAULT 15;
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS daily_limit INTEGER NOT NULL DEFAULT 2;
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS active INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
+    ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
+    ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS note TEXT DEFAULT '';
+    ALTER TABLE topups ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';
+    ALTER TABLE topups ADD COLUMN IF NOT EXISTS coin_type TEXT NOT NULL DEFAULT 'vcoin';
+    ALTER TABLE topups ADD COLUMN IF NOT EXISTS note TEXT DEFAULT '';
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT -1;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS note TEXT DEFAULT '';
+    ALTER TABLE announcements ADD COLUMN IF NOT EXISTS active INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE popups ADD COLUMN IF NOT EXISTS active INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE regulations ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+    ALTER TABLE regulations ADD COLUMN IF NOT EXISTS active INTEGER NOT NULL DEFAULT 1;
   `);
 
   console.log('Database san sang');
