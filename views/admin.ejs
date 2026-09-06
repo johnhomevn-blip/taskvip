@@ -69,7 +69,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <input name="target_url" placeholder="URL đích (để trống = tự về trang nhiệm vụ)" style="<%=inp%>">
           <input name="base_reward" type="number" placeholder="Thưởng Ncoin" style="<%=inp%>" required>
           <input name="exp_reward" type="number" placeholder="EXP" value="1" style="<%=inp%>">
-          <input name="min_seconds" type="number" placeholder="Giây tối thiểu" value="15" style="<%=inp%>">
+          <input name="min_seconds" type="number" placeholder="Giây tối thiểu" value="30" style="<%=inp%>">
           <input name="daily_limit" type="number" placeholder="Lượt/user/ngày" value="2" style="<%=inp%>">
           <input name="ip_daily_limit" type="number" placeholder="Lượt/IP/ngày" value="2" style="<%=inp%>">
           <button class="btn btn-primary" type="submit" style="grid-column:1/-1">➕ Thêm nhiệm vụ</button>
@@ -200,8 +200,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <form method="POST" action="/admin/products" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
           <input name="name" placeholder="Tên sản phẩm" style="<%=inp%>" required>
           <input name="description" placeholder="Mô tả" style="<%=inp%>">
-          <input name="price_ncoin" type="number" placeholder="Giá Ncoin" value="0" style="<%=inp%>">
-          <input name="price_vcoin" type="number" placeholder="Giá Vcoin" value="0" style="<%=inp%>">
+          <input name="price" type="number" placeholder="Giá (coin)" value="0" style="<%=inp%>">
           <input name="stock" type="number" placeholder="Kho (-1=∞)" value="-1" style="<%=inp%>">
           <button class="btn btn-primary" type="submit">➕ Thêm</button>
         </form>
@@ -227,12 +226,11 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
       <div class="card">
         <div class="card-title">📋 Sản phẩm</div>
         <table>
-          <tr><th>Tên</th><th>Giá N</th><th>Giá V</th><th>Kho</th><th>Trạng thái</th><th></th></tr>
+          <tr><th>Tên</th><th>Giá</th><th>Kho</th><th>Trạng thái</th><th></th></tr>
           <%products.forEach(p=>{%>
           <tr>
             <td><%=p.name%></td>
-            <td><%=p.price_ncoin>0?p.price_ncoin.toLocaleString('vi-VN'):'—'%></td>
-            <td><%=p.price_vcoin>0?p.price_vcoin.toLocaleString('vi-VN'):'—'%></td>
+            <td><span class="coin-wrap"><%=(p.price||0).toLocaleString('vi-VN')%> coin</span></td>
             <td><%=p.stock===-1?'∞':p.stock%></td>
             <td><%if(p.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
             <td><form method="POST" action="/admin/products/<%=p.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=p.active?'Tắt':'Bật'%></button></form></td>
@@ -263,6 +261,16 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
 
     <!-- USERS -->
     <div class="tab-panel" id="tab-users">
+      <div class="card" style="margin-bottom:12px;border-color:rgba(239,68,68,0.3)">
+        <div class="card-title">⚠️ Reset dữ liệu IP/Thiết bị</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px">
+          Nếu tài khoản thật bị chặn nhầm "trùng IP/thiết bị" do dữ liệu test cũ (nhiều tài khoản test dùng chung máy/mạng lúc phát triển),
+          bấm nút này để xóa sạch lịch sử IP/fingerprint đã ghi nhận — không ảnh hưởng số dư, chỉ xóa dữ liệu chống gian lận để bắt đầu lại từ đầu.
+        </div>
+        <form method="POST" action="/admin/reset-ip-data" onsubmit="return confirm('Xóa toàn bộ dữ liệu IP/thiết bị đã ghi nhận? Không thể hoàn tác.')">
+          <button class="btn btn-danger" type="submit">🗑️ Xóa toàn bộ dữ liệu IP/Thiết bị</button>
+        </form>
+      </div>
       <div class="card" style="margin-bottom:12px">
         <div class="card-title">➕ Tạo tài khoản thủ công (để test)</div>
         <form method="POST" action="/admin/users/create" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">

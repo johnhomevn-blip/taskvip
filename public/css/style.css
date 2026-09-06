@@ -107,7 +107,8 @@ a{text-decoration:none;color:inherit}
 .rb2{background:linear-gradient(135deg,#9ca3af,#e5e7eb)}
 .rb3{background:linear-gradient(135deg,#b45309,#d97706)}
 .rbx{background:rgba(255,255,255,0.08);color:var(--text2);font-size:12px}
-.rank-name{flex:1;font-weight:600;font-size:14px}
+.rank-info{flex:1;min-width:0}
+.rank-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-count{font-size:12px;color:var(--text2)}
 .rank-prize{color:#fbbf24;font-weight:700;font-size:13px}
 

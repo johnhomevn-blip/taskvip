@@ -140,7 +140,7 @@ router.post('/admin/buff', async (req, res) => {
     }
     await client.query('COMMIT');
   } catch(e) { await client.query('ROLLBACK'); console.error(e); } finally { client.release(); }
-  res.redirect('/admin?ok=1#users');
+  res.redirect('/admin?ok=1#buff');
 });
 
 // BUFF BANG XEP HANG TUAN (cong truc tiep vao weekly_rankings)
@@ -212,9 +212,9 @@ router.post('/admin/users/:id/delete', async (req, res) => {
 
 // PRODUCTS + ORDERS
 router.post('/admin/products', async (req, res) => {
-  const { name, description, price_ncoin, price_vcoin, stock } = req.body;
-  await db.run('INSERT INTO products (name,description,price_ncoin,price_vcoin,stock,active,created_at) VALUES ($1,$2,$3,$4,$5,1,$6)',
-    [name, description||'', parseInt(price_ncoin)||0, parseInt(price_vcoin)||0, parseInt(stock)||-1, Date.now()]);
+  const { name, description, price, stock } = req.body;
+  await db.run('INSERT INTO products (name,description,price,stock,active,created_at) VALUES ($1,$2,$3,$4,1,$5)',
+    [name, description||'', parseInt(price)||0, parseInt(stock)||-1, Date.now()]);
   res.redirect('/admin#shop');
 });
 router.post('/admin/products/:id/toggle', async (req, res) => {
@@ -311,6 +311,13 @@ router.get('/admin/user/:id/ips', async (req, res) => {
     (SELECT COUNT(*) FROM ip_user_map WHERE ip=m.ip AND user_id!=$1) as other_accounts
     FROM ip_user_map m WHERE m.user_id=$1 ORDER BY m.last_seen DESC`, [target.id]);
   res.render('admin_ips', { user: req.user, target, ips });
+});
+
+// RESET TOAN BO DU LIEU IP/FINGERPRINT (dung khi du lieu test cu gay false-block)
+router.post('/admin/reset-ip-data', async (req, res) => {
+  await db.run('DELETE FROM ip_user_map');
+  await db.run('DELETE FROM fp_user_map');
+  res.redirect('/admin?ok=1#users');
 });
 
 module.exports = router;

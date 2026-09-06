@@ -4,6 +4,7 @@ const session = require('express-session');
 const path = require('path');
 const db = require('./db');
 const { getLevelInfo, getLevelTag } = require('./lib/level');
+const { getClientIp } = require('./lib/ip');
 
 const app = express();
 app.set('trust proxy', 1); // Railway dung reverse proxy, can cai nay de doc dung IP that cua user
@@ -56,7 +57,7 @@ app.get('/setup-admin-taskvip', async (req, res) => {
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('Admin@2026', 10);
   await db.run(`INSERT INTO users (username,password_hash,ncoin,vcoin,exp,level,is_admin,created_at,reg_ip) VALUES ($1,$2,0,0,0,1,1,$3,$4)`,
-    ['admin', hash, Date.now(), req.ip]);
+    ['admin', hash, Date.now(), getClientIp(req)]);
   res.send('Tạo admin thành công! Đăng nhập: admin / Admin@2026');
 });
 

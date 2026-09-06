@@ -1,4 +1,5 @@
 const express = require('express');
+const { getClientIp } = require('../lib/ip');
 const db = require('../db');
 const token = require('../lib/token');
 const { getLevelInfo } = require('../lib/level');
@@ -23,7 +24,7 @@ router.get('/verify', async (req, res) => {
     return res.render('verify', { status:'error', message:'Chưa hoàn thành đủ thời gian yêu cầu.', reward:0, multiplier:1, targetUrl:null });
   }
 
-  const ip = req.ip;
+  const ip = getClientIp(req);
   const client = await db.connect();
   try {
     await client.query('BEGIN');

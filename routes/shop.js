@@ -14,19 +14,25 @@ router.post('/shop/:id/buy', async (req, res) => {
   const product = await db.get('SELECT * FROM products WHERE id=$1 AND active=1', [req.params.id]);
   if (!product) return res.redirect('/shop?error=Sản phẩm không tồn tại');
   if (product.stock === 0) return res.redirect('/shop?error=Sản phẩm đã hết hàng');
-  if (product.price_ncoin > user.ncoin) return res.redirect('/shop?error=Không đủ Ncoin');
-  if (product.price_vcoin > user.vcoin) return res.redirect('/shop?error=Không đủ Vcoin');
+
+  const price = product.price || 0;
+  const totalAvailable = user.ncoin + user.vcoin;
+  if (price > totalAvailable) return res.redirect('/shop?error=Không đủ coin để đổi sản phẩm này');
+
+  // Uu tien tru Ncoin truoc, thieu moi tru sang Vcoin
+  const deductNcoin = Math.min(user.ncoin, price);
+  const deductVcoin = price - deductNcoin;
 
   const client = await db.connect();
   try {
     await client.query('BEGIN');
-    if (product.price_ncoin > 0) await client.query('UPDATE users SET ncoin=ncoin-$1 WHERE id=$2', [product.price_ncoin, user.id]);
-    if (product.price_vcoin > 0) await client.query('UPDATE users SET vcoin=vcoin-$1 WHERE id=$2', [product.price_vcoin, user.id]);
+    if (deductNcoin > 0) await client.query('UPDATE users SET ncoin=ncoin-$1 WHERE id=$2', [deductNcoin, user.id]);
+    if (deductVcoin > 0) await client.query('UPDATE users SET vcoin=vcoin-$1 WHERE id=$2', [deductVcoin, user.id]);
     if (product.stock > 0) await client.query('UPDATE products SET stock=stock-1 WHERE id=$1', [product.id]);
     await client.query(`INSERT INTO orders (user_id,product_id,price_ncoin,price_vcoin,status,created_at) VALUES ($1,$2,$3,$4,'pending',$5)`,
-      [user.id, product.id, product.price_ncoin, product.price_vcoin, Date.now()]);
+      [user.id, product.id, deductNcoin, deductVcoin, Date.now()]);
     await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'buy',$2,'ncoin',$3,$4)`,
-      [user.id, product.price_ncoin||product.price_vcoin, `Mua: ${product.name}`, Date.now()]);
+      [user.id, price, `Mua: ${product.name}`, Date.now()]);
     await client.query('COMMIT');
   } catch(e) { await client.query('ROLLBACK'); return res.redirect('/shop?error=Lỗi, thử lại'); }
   finally { client.release(); }

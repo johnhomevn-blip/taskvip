@@ -31,7 +31,7 @@
   <div class="rank-badge <%=i===0?'rb1':i===1?'rb2':i===2?'rb3':'rbx'%>"><%=i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1%></div>
   <div class="rank-info">
     <div class="rank-name"><%=r.username%></div>
-    <div class="rank-count">⚡ <%=r.task_count%> lượt · <span class="coin-wrap"><span class="ni sm">N</span><%=r.ncoin_earned.toLocaleString('vi-VN')%></span></div>
+    <div class="rank-count">⚡ <%=r.task_count%> lượt vượt link</div>
   </div>
   <%if(i<3&&rewards[`weekly_reward_${i+1}`]){%><div class="rank-prize">+<%=rewards[`weekly_reward_${i+1}`].toLocaleString('vi-VN')%>đ</div><%}%>
 </div>

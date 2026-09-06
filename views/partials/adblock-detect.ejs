@@ -1,0 +1,30 @@
+<!-- Kiem tra Adblock: dat 1 the "moi" pho bien bi chan boi cac bo loc quang cao -->
+<div id="adblock-bait" class="ads ad-banner ad-container adsbygoogle" style="width:1px;height:1px;position:absolute;left:-9999px;top:-9999px;"></div>
+<div id="adblock-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg2);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:32px;max-width:420px;text-align:center;">
+    <div style="font-size:44px;margin-bottom:12px;">🛡️🚫</div>
+    <div style="font-size:19px;font-weight:700;margin-bottom:10px;">Vui lòng tắt trình chặn quảng cáo</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:20px;">
+      4ummo hoạt động miễn phí nhờ nguồn thu từ quảng cáo. Vui lòng tắt Adblock/uBlock Origin và tải lại trang để tiếp tục sử dụng dịch vụ.
+    </div>
+    <button class="btn btn-primary btn-full" onclick="location.reload()">🔄 Tôi đã tắt, tải lại trang</button>
+  </div>
+</div>
+<script>
+(function () {
+  setTimeout(function () {
+    var bait = document.getElementById('adblock-bait');
+    var blocked = false;
+    if (!bait || bait.offsetParent === null || bait.offsetHeight === 0 || bait.offsetWidth === 0) {
+      blocked = true;
+    }
+    // Kiem tra them: neu cac bien global cua mang quang cao khong ton tai sau khi script da co du thoi gian load
+    if (typeof window.atOptions === 'undefined' && document.querySelectorAll('script[src*="profitableratecpmnetwork"],script[src*="highrevenueformat"]').length > 0) {
+      // co the la false positive khi mang cham, chi dung ket qua bait o tren la chinh
+    }
+    if (blocked) {
+      document.getElementById('adblock-overlay').style.display = 'flex';
+    }
+  }, 1500);
+})();
+</script>

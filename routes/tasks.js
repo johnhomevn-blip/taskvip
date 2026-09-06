@@ -1,4 +1,5 @@
 const express = require('express');
+const { getClientIp } = require('../lib/ip');
 const db = require('../db');
 const token = require('../lib/token');
 const { createShortLink } = require('../lib/shortener');
@@ -39,13 +40,13 @@ router.get('/tasks', async (req, res) => {
   }));
   const uncategorized = tasksWithInfo.filter(t => !t.category_id);
 
-  res.render('tasks', { userIP: req.ip, user, grouped, uncategorized, multiplier, secondsUntilReset, announcements,
+  res.render('tasks', { userIP: getClientIp(req), user, grouped, uncategorized, multiplier, secondsUntilReset, announcements,
     error: req.query.error || null, done: req.query.done || null });
 });
 
 router.post('/tasks/:id/start', async (req, res) => {
   const user = req.user;
-  const ip = req.ip;
+  const ip = getClientIp(req);
   const fp = req.body.fingerprint || '';
 
   // Chong spam: gioi han 10 giay giua cac lan bam

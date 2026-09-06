@@ -1,4 +1,5 @@
 const express = require('express');
+const { getClientIp } = require('../lib/ip');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const router = express.Router();
@@ -8,7 +9,7 @@ router.get('/register', (req, res) => res.render('register', { error: null }));
 router.post('/register', async (req, res) => {
   const { username, password, password2 } = req.body;
   const fp = req.body.fingerprint || '';
-  const ip = req.ip;
+  const ip = getClientIp(req);
   if (!username || !password || password.length < 6)
     return res.render('register', { error: 'Tên đăng nhập và mật khẩu tối thiểu 6 ký tự là bắt buộc.' });
   if (password !== password2)
@@ -42,7 +43,7 @@ router.post('/login', async (req, res) => {
   // Ghi nhat ky dang nhap
   await db.run(
     'INSERT INTO login_logs (user_id, ip, user_agent, created_at) VALUES ($1,$2,$3,$4)',
-    [user.id, req.ip, req.headers['user-agent'] || '', Date.now()]
+    [user.id, getClientIp(req), req.headers['user-agent'] || '', Date.now()]
   );
   // Xoa log cu hon 7 ngay
   await db.run('DELETE FROM login_logs WHERE user_id=$1 AND created_at < $2', [user.id, Date.now() - 7*24*60*60*1000]);

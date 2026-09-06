@@ -120,6 +120,7 @@ async function init() {
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT DEFAULT '',
+      price INTEGER DEFAULT 0,
       price_ncoin INTEGER DEFAULT 0,
       price_vcoin INTEGER DEFAULT 0,
       stock INTEGER DEFAULT -1,
@@ -250,6 +251,8 @@ async function init() {
     CREATE UNIQUE INDEX IF NOT EXISTS providers_name_key ON providers (name);
     UPDATE providers SET api_endpoint='https://link4m.co/st' WHERE name='link4m' AND api_endpoint != 'https://link4m.co/st';
     UPDATE providers SET api_endpoint='https://site2s.com/st' WHERE name='site2s' AND api_endpoint != 'https://site2s.com/st';
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS price INTEGER DEFAULT 0;
+    UPDATE products SET price = price_ncoin + price_vcoin WHERE price = 0 AND (price_ncoin > 0 OR price_vcoin > 0);
   `);
 
   console.log('Database san sang');

@@ -90,4 +90,5 @@ const fp=[navigator.userAgent,screen.width+'x'+screen.height,navigator.language]
 const fpVal=btoa(fp).slice(0,32);
 document.querySelectorAll('.fp-input').forEach(e=>e.value=fpVal);
 </script>
+<%- include('partials/adblock-detect') %>
 </body></html>

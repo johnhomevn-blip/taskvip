@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Dashboard Admin - 4ummo</title>
+<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/coins.css">
+<script src="/js/menu.js" defer></script></head><body>
+<%- include('partials/sidebar',{page:'dashboard',user}) %>
+<%- include('partials/popup') %>
+<div class="main" id="main">
+  <%- include('partials/topbar') %>
+  <div class="topbar"><div class="topbar-title">📊 Dashboard Quản Trị - Thống Kê Toàn Hệ Thống</div></div>
+  <div class="page">
+
+    <div class="tabs" style="margin-bottom:16px">
+      <a href="/dashboard?period=day" class="tab-btn <%=period==='day'?'active':''%>" style="text-decoration:none">📅 Hôm nay</a>
+      <a href="/dashboard?period=week" class="tab-btn <%=period==='week'?'active':''%>" style="text-decoration:none">📆 Tuần này</a>
+      <a href="/dashboard?period=month" class="tab-btn <%=period==='month'?'active':''%>" style="text-decoration:none">🗓️ Tháng này</a>
+    </div>
+
+    <div class="grid4" style="margin-bottom:16px">
+      <div class="stat-card">
+        <div class="stat-label"><span class="ni sm">N</span> Tổng Ncoin đã trả</div>
+        <div class="stat-value" style="color:#f59e0b"><%=totalNcoin.toLocaleString('vi-VN')%></div>
+        <div class="stat-sub">Trong khoảng thời gian đã chọn</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">⚡ Tổng lượt vượt link</div>
+        <div class="stat-value"><%=totalLinks.toLocaleString('vi-VN')%></div>
+        <div class="stat-sub">Đã hoàn thành</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">👥 Tổng users</div>
+        <div class="stat-value"><%=totalUsers.toLocaleString('vi-VN')%></div>
+        <div class="stat-sub">Toàn hệ thống</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">💸 Rút tiền chờ duyệt</div>
+        <div class="stat-value" style="color:#ef4444"><%=pendingWithdrawAmount.toLocaleString('vi-VN')%>đ</div>
+        <div class="stat-sub"><%=pendingWithdrawCount%> yêu cầu</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📈 Tổng Ncoin toàn hệ thống - 7 ngày gần nhất</div>
+      <div class="chart-bars">
+        <%const mx=Math.max(...days.map(d=>d.total),1);%>
+        <%days.forEach(d=>{%>
+        <div class="chart-col">
+          <div class="chart-bar" style="height:<%=Math.max(3,Math.round(d.total/mx*100))%>%" title="<%=d.date%>: <%=d.total.toLocaleString('vi-VN')%>N"></div>
+          <div class="chart-lbl"><%=d.date%></div>
+        </div><%})%>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏆 Top user vượt nhiều link nhất (<%=period==='day'?'Hôm nay':period==='week'?'Tuần này':'Tháng này'%>)</div>
+      <table>
+        <tr><th>Hạng</th><th>Username</th><th>Số link vượt</th><th>Ncoin nhận</th></tr>
+        <%topUsers.forEach((u,i)=>{%>
+        <tr>
+          <td><%=i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1%></td>
+          <td><b><%=u.username%></b></td>
+          <td><%=parseInt(u.link_count).toLocaleString('vi-VN')%></td>
+          <td><span class="coin-wrap"><span class="ni sm">N</span><%=parseInt(u.ncoin_sum).toLocaleString('vi-VN')%></span></td>
+        </tr>
+        <%})%>
+      </table>
+      <%if(topUsers.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Chưa có dữ liệu trong khoảng thời gian này</div><%}%>
+    </div>
+
+  </div>
+</div>
+</body></html>
