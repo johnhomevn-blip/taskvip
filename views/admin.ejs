@@ -163,7 +163,8 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <div class="card-title">🎁 Điều chỉnh coin (nhập số âm để trừ, ví dụ -5000)</div>
         <form method="POST" action="/admin/buff" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
-          <select name="user_id" style="width:100%;<%=sel%>">
+          <input type="text" placeholder="🔍 Gõ để tìm theo tên..." oninput="filterUserSelect(this,'buffSelect1')" style="width:100%;<%=inp%>;margin-bottom:6px">
+          <select name="user_id" id="buffSelect1" style="width:100%;<%=sel%>">
             <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%> (<%=u.ncoin%>N/<%=u.vcoin%>V)</option><%})%>
           </select></div>
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px"><span class="ni sm">N</span> Ncoin (+/-)</label>
@@ -181,7 +182,8 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Dùng để test đua top khi web còn ít user — cộng thẳng vào số liệu tuần hiện tại, không cộng tiền vào ví.</div>
         <form method="POST" action="/admin/buff-ranking" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
-          <select name="user_id" style="width:100%;<%=sel%>">
+          <input type="text" placeholder="🔍 Gõ để tìm theo tên..." oninput="filterUserSelect(this,'buffSelect2')" style="width:100%;<%=inp%>;margin-bottom:6px">
+          <select name="user_id" id="buffSelect2" style="width:100%;<%=sel%>">
             <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%></option><%})%>
           </select></div>
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Số lượt vượt cộng thêm</label>
@@ -296,6 +298,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><%if(u.is_banned){%><span class="badge badge-danger">🔒 Đã khóa</span><%}else{%><span class="badge badge-success">✅ Hoạt động</span><%}%></td>
             <td style="display:flex;gap:4px;flex-wrap:wrap">
               <a href="/admin/user/<%=u.id%>/ips" class="btn btn-sm btn-outline">🔍 IP</a>
+              <form method="POST" action="/admin/user/<%=u.id%>/reset-ip" onsubmit="return confirm('Xóa IP/thiết bị đã ghi nhận của user này? Dùng khi họ đổi máy/mạng bị chặn nhầm.')"><button class="btn btn-sm btn-outline" type="submit" style="color:#f59e0b;border-color:rgba(245,158,11,0.3)">♻️ Reset IP</button></form>
               <form method="POST" action="/admin/users/<%=u.id%>/ban"><button class="btn btn-sm <%=u.is_banned?'btn-success':'btn-warning'%>" type="submit"><%=u.is_banned?'Mở khóa':'Khóa'%></button></form>
               <form method="POST" action="/admin/users/<%=u.id%>/delete" onsubmit="return confirm('Xóa vĩnh viễn tài khoản này? Toàn bộ dữ liệu liên quan sẽ mất.')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
             </td>
@@ -432,6 +435,17 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
   </div>
 </div>
 <script>
+function filterUserSelect(input, selectId) {
+  const q = input.value.toLowerCase();
+  const select = document.getElementById(selectId);
+  let firstMatch = null;
+  for (const opt of select.options) {
+    const match = opt.textContent.toLowerCase().includes(q);
+    opt.style.display = match ? '' : 'none';
+    if (match && !firstMatch) firstMatch = opt;
+  }
+  if (firstMatch) select.value = firstMatch.value;
+}
 function showTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));

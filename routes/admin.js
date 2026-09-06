@@ -313,6 +313,13 @@ router.get('/admin/user/:id/ips', async (req, res) => {
   res.render('admin_ips', { user: req.user, target, ips });
 });
 
+// RESET DU LIEU IP/FINGERPRINT CHO 1 USER CU THE (khi ho doi may/mang bi chan nham)
+router.post('/admin/user/:id/reset-ip', async (req, res) => {
+  await db.run('DELETE FROM ip_user_map WHERE user_id=$1', [req.params.id]);
+  await db.run('DELETE FROM fp_user_map WHERE user_id=$1', [req.params.id]);
+  res.redirect('/admin?ok=1#users');
+});
+
 // RESET TOAN BO DU LIEU IP/FINGERPRINT (dung khi du lieu test cu gay false-block)
 router.post('/admin/reset-ip-data', async (req, res) => {
   await db.run('DELETE FROM ip_user_map');

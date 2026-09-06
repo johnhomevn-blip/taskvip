@@ -253,6 +253,14 @@ async function init() {
     UPDATE providers SET api_endpoint='https://site2s.com/st' WHERE name='site2s' AND api_endpoint != 'https://site2s.com/st';
     ALTER TABLE products ADD COLUMN IF NOT EXISTS price INTEGER DEFAULT 0;
     UPDATE products SET price = price_ncoin + price_vcoin WHERE price = 0 AND (price_ncoin > 0 OR price_vcoin > 0);
+    ALTER TABLE topups ADD COLUMN IF NOT EXISTS topup_at BIGINT DEFAULT 0;
+    ALTER TABLE topups ADD COLUMN IF NOT EXISTS withdrawable_at BIGINT DEFAULT 0;
+    UPDATE topups SET topup_at = created_at WHERE topup_at = 0;
+    UPDATE topups SET withdrawable_at = created_at + (28*24*60*60*1000) WHERE withdrawable_at = 0;
+    DELETE FROM weekly_rankings a USING weekly_rankings b
+      WHERE a.id > b.id AND a.user_id = b.user_id AND a.week_start = b.week_start;
+    CREATE UNIQUE INDEX IF NOT EXISTS weekly_rankings_user_week_key ON weekly_rankings (user_id, week_start);
+    CREATE UNIQUE INDEX IF NOT EXISTS weekly_rankings_user_week_key ON weekly_rankings (user_id, week_start);
   `);
 
   console.log('Database san sang');
