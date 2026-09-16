@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const crypto = require('crypto');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -22,7 +23,10 @@ async function init() {
       bank_owner TEXT DEFAULT '',
       created_at BIGINT NOT NULL,
       reg_ip TEXT DEFAULT '',
-      reg_fingerprint TEXT DEFAULT ''
+      reg_fingerprint TEXT DEFAULT '',
+      referral_code TEXT,
+      referred_by INTEGER REFERENCES users(id),
+      referral_tier_locked INTEGER NOT NULL DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS task_categories (
@@ -54,6 +58,8 @@ async function init() {
       min_seconds INTEGER NOT NULL DEFAULT 15,
       daily_limit INTEGER NOT NULL DEFAULT 2,
       ip_daily_limit INTEGER NOT NULL DEFAULT 2,
+      reset_mode TEXT NOT NULL DEFAULT 'daily',
+      reset_hours INTEGER NOT NULL DEFAULT 24,
       active INTEGER NOT NULL DEFAULT 1,
       created_at BIGINT NOT NULL
     );
@@ -116,15 +122,38 @@ async function init() {
       admin_id INTEGER
     );
 
+    CREATE TABLE IF NOT EXISTS shop_categories (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      icon TEXT DEFAULT '🛍️',
+      sort_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at BIGINT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
+      category_id INTEGER REFERENCES shop_categories(id),
       name TEXT NOT NULL,
       description TEXT DEFAULT '',
       price INTEGER DEFAULT 0,
       price_ncoin INTEGER DEFAULT 0,
       price_vcoin INTEGER DEFAULT 0,
       stock INTEGER DEFAULT -1,
+      delivery_mode TEXT NOT NULL DEFAULT 'manual',
       active INTEGER DEFAULT 1,
+      created_at BIGINT NOT NULL
+    );
+
+    -- Kho tai khoan/thong tin cho san pham kieu "giao tu dong" (delivery_mode='pool'),
+    -- vd danh muc Gmail: admin dan hang loat tai khoan:mat khau vao day truoc,
+    -- moi luot mua se tu dong lay ra 1 dong con "available" va giao ngay lap tuc.
+    CREATE TABLE IF NOT EXISTS product_stock (
+      id SERIAL PRIMARY KEY,
+      product_id INTEGER NOT NULL REFERENCES products(id),
+      content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'available',
+      order_id INTEGER,
       created_at BIGINT NOT NULL
     );
 
@@ -132,12 +161,31 @@ async function init() {
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
       product_id INTEGER NOT NULL,
+      order_code TEXT,
+      quantity INTEGER NOT NULL DEFAULT 1,
       price_ncoin INTEGER DEFAULT 0,
       price_vcoin INTEGER DEFAULT 0,
       status TEXT DEFAULT 'pending',
+      delivery_info TEXT DEFAULT '',
       note TEXT DEFAULT '',
       created_at BIGINT NOT NULL,
       processed_at BIGINT
+    );
+
+    CREATE TABLE IF NOT EXISTS custom_orders (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      order_code TEXT,
+      title TEXT NOT NULL,
+      details TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      quoted_price INTEGER,
+      price_ncoin INTEGER DEFAULT 0,
+      price_vcoin INTEGER DEFAULT 0,
+      admin_note TEXT DEFAULT '',
+      delivery_info TEXT DEFAULT '',
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS transactions (
@@ -191,6 +239,15 @@ async function init() {
       UNIQUE(user_id, week_start)
     );
 
+    CREATE TABLE IF NOT EXISTS referral_monthly (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      month_start BIGINT NOT NULL,
+      ref_count INTEGER NOT NULL DEFAULT 0,
+      commission_earned INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, month_start)
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -213,16 +270,26 @@ async function init() {
     INSERT INTO settings VALUES ('withdraw_fee_diamond','1000') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('withdraw_fee_legend','0') ON CONFLICT DO NOTHING;
 
+    INSERT INTO settings VALUES ('referral_enabled','1') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_threshold_2','51') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_threshold_3','101') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_rate_1','7') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_rate_2','12') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_rate_3','15') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_reward_1','40000') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_reward_2','25000') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_reward_3','15000') ON CONFLICT DO NOTHING;
+
     INSERT INTO task_categories (name, icon, sort_order, active, created_at)
     VALUES ('Link Rút Gọn', '🔗', 1, 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     ON CONFLICT DO NOTHING;
 
     INSERT INTO providers (name, api_key, api_endpoint, active, created_at)
-    VALUES ('link4m', '', 'https://link4m.co/st', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    VALUES ('link4m', '', 'https://link4m.co/full/?api={API_KEY}&url={URL_B64}&type=2', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     ON CONFLICT DO NOTHING;
 
     INSERT INTO providers (name, api_key, api_endpoint, active, created_at)
-    VALUES ('site2s', '', 'https://site2s.com/st', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    VALUES ('site2s', '', 'https://site2s.com/full/?api={API_KEY}&url={URL_B64}&type=2', 1, EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     ON CONFLICT DO NOTHING;
   `);
 
@@ -237,6 +304,18 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_ip TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS reg_fingerprint TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned INTEGER DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_tier_locked INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id INTEGER;
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reset_mode TEXT NOT NULL DEFAULT 'daily';
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reset_hours INTEGER NOT NULL DEFAULT 24;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_mode TEXT NOT NULL DEFAULT 'manual';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_code TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_info TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1;
+    ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS order_code TEXT;
+    ALTER TABLE custom_orders ADD COLUMN IF NOT EXISTS delivery_info TEXT DEFAULT '';
     ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS reward_actual INTEGER DEFAULT 0;
     ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS multiplier NUMERIC(6,4) DEFAULT 1.0;
     ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS fingerprint TEXT;
@@ -253,8 +332,8 @@ async function init() {
       ORDER BY name, (api_key <> '') DESC, id ASC
     );
     CREATE UNIQUE INDEX IF NOT EXISTS providers_name_key ON providers (name);
-    UPDATE providers SET api_endpoint='https://link4m.co/st' WHERE name='link4m' AND api_endpoint != 'https://link4m.co/st';
-    UPDATE providers SET api_endpoint='https://site2s.com/st' WHERE name='site2s' AND api_endpoint != 'https://site2s.com/st';
+    UPDATE providers SET api_endpoint='https://link4m.co/full/?api={API_KEY}&url={URL_B64}&type=2' WHERE name='link4m' AND api_endpoint IN ('https://link4m.co/st','https://link4m.co/full/');
+    UPDATE providers SET api_endpoint='https://site2s.com/full/?api={API_KEY}&url={URL_B64}&type=2' WHERE name='site2s' AND api_endpoint IN ('https://site2s.com/st','https://site2s.com/full/');
     ALTER TABLE products ADD COLUMN IF NOT EXISTS price INTEGER DEFAULT 0;
     UPDATE products SET price = price_ncoin + price_vcoin WHERE price = 0 AND (price_ncoin > 0 OR price_vcoin > 0);
     ALTER TABLE topups ADD COLUMN IF NOT EXISTS topup_at BIGINT DEFAULT 0;
@@ -316,6 +395,79 @@ async function init() {
 
     CREATE UNIQUE INDEX IF NOT EXISTS task_categories_name_key ON task_categories (name);
   `);
+
+  // Fix danh muc shop bi nhan ban (cung 1 nguyen nhan nhu task_categories o tren)
+  await pool.query(`
+    WITH survivors AS (
+      SELECT name, MIN(id) as keep_id FROM shop_categories GROUP BY name
+    )
+    UPDATE products
+    SET category_id = s.keep_id
+    FROM shop_categories sc
+    JOIN survivors s ON s.name = sc.name
+    WHERE products.category_id = sc.id AND sc.id <> s.keep_id;
+
+    DELETE FROM shop_categories a USING shop_categories b
+      WHERE a.id > b.id AND a.name = b.name;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS shop_categories_name_key ON shop_categories (name);
+  `);
+
+  // Sinh ma gioi thieu (referral_code) cho user nao chua co (tai khoan tao truoc
+  // khi co tinh nang gioi thieu, hoac phong khi sinh trung ma o buoc dang ky).
+  // Lam tuan tu tung user de tranh trung ma (khong dung sinh hang loat mot cau lenh).
+  const usersWithoutCode = await pool.query('SELECT id FROM users WHERE referral_code IS NULL OR referral_code = $1', ['']);
+  for (const row of usersWithoutCode.rows) {
+    let code, ok = false;
+    for (let i = 0; i < 10 && !ok; i++) {
+      code = crypto.randomBytes(4).toString('hex').toUpperCase();
+      const exists = await pool.query('SELECT 1 FROM users WHERE referral_code=$1', [code]);
+      ok = exists.rows.length === 0;
+    }
+    await pool.query('UPDATE users SET referral_code=$1 WHERE id=$2', [code, row.id]);
+  }
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_key ON users (referral_code);');
+
+  // Sinh ma don hang (order_code) cho cac don hang cu chua co (tao truoc khi
+  // co tinh nang nay). Lam tuan tu tung dong de tranh trung ma.
+  const ordersWithoutCode = await pool.query('SELECT id FROM orders WHERE order_code IS NULL');
+  for (const row of ordersWithoutCode.rows) {
+    let code, ok = false;
+    for (let i = 0; i < 10 && !ok; i++) {
+      code = 'DH' + crypto.randomBytes(3).toString('hex').toUpperCase();
+      const exists1 = await pool.query('SELECT 1 FROM orders WHERE order_code=$1', [code]);
+      const exists2 = await pool.query('SELECT 1 FROM custom_orders WHERE order_code=$1', [code]);
+      ok = exists1.rows.length === 0 && exists2.rows.length === 0;
+    }
+    await pool.query('UPDATE orders SET order_code=$1 WHERE id=$2', [code, row.id]);
+  }
+  const customOrdersWithoutCode = await pool.query('SELECT id FROM custom_orders WHERE order_code IS NULL');
+  for (const row of customOrdersWithoutCode.rows) {
+    let code, ok = false;
+    for (let i = 0; i < 10 && !ok; i++) {
+      code = 'DH' + crypto.randomBytes(3).toString('hex').toUpperCase();
+      const exists1 = await pool.query('SELECT 1 FROM orders WHERE order_code=$1', [code]);
+      const exists2 = await pool.query('SELECT 1 FROM custom_orders WHERE order_code=$1', [code]);
+      ok = exists1.rows.length === 0 && exists2.rows.length === 0;
+    }
+    await pool.query('UPDATE custom_orders SET order_code=$1 WHERE id=$2', [code, row.id]);
+  }
+
+  // VA LOI: username truoc day chi chan trung khi GIONG HET hoa/thuong (vd
+  // "NguyenVanA" va "nguyenvana" duoc coi la 2 tai khoan khac nhau), gay nham
+  // lan khi dang nhap va co the bi loi dung de tao nhieu tai khoan gan giong
+  // nhau. Them unique index tren LOWER(username) de DATABASE tu chan trung ten
+  // khong phan biet hoa/thuong (lop bao ve cuoi cung, kem voi kiem tra o
+  // routes/auth.js va routes/admin.js). Boc rieng trong try/catch: neu server
+  // cua ban da co san 2 tai khoan trung ten chi khac hoa/thuong tu truoc, lenh
+  // nay se bao loi nhung KHONG lam sap server - chi in canh bao de ban tu xu ly.
+  try {
+    await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_key ON users (LOWER(username));');
+  } catch (e) {
+    console.warn('[CANH BAO] Khong the tao rang buoc chong trung ten (khong phan biet hoa/thuong).');
+    console.warn('[CANH BAO] Co the da ton tai 2 tai khoan trung ten chi khac hoa/thuong tu truoc. Chi tiet loi:', e.message);
+    console.warn('[CANH BAO] He thong van hoat dong binh thuong, nhung nen tim va xu ly (doi ten/khoa bot) cac tai khoan trung nay.');
+  }
 
   console.log('Database san sang');
 }

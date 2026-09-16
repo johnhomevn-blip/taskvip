@@ -2,6 +2,16 @@ const express = require('express');
 const db = require('../db');
 const router = express.Router();
 
+// Kiem tra quyen admin - CHI ap dung cho duong dan bat dau bang '/admin'
+// (router nay duoc mount o prefix '/' trong server.js de cac duong dan noi
+// bo nhu '/admin/tasks' hoat dong, nen KHONG duoc dat middleware nay o
+// server.js cho toan bo request nhu truoc - se chan oan ca nhung duong dan
+// khong lien quan gi den admin, gay ra loi "Khong co quyen" o trang chu).
+router.use('/admin', (req, res, next) => {
+  if (!req.user?.is_admin) return res.status(403).send('Không có quyền');
+  next();
+});
+
 router.get('/admin', async (req, res) => {
   const tasks = await db.q('SELECT t.*, c.name as cat_name FROM tasks t LEFT JOIN task_categories c ON c.id=t.category_id ORDER BY t.id DESC');
   const categories = await db.q('SELECT * FROM task_categories ORDER BY sort_order');
@@ -12,7 +22,13 @@ router.get('/admin', async (req, res) => {
   const popups = await db.q('SELECT * FROM popups ORDER BY created_at DESC');
   const regs = await db.q('SELECT * FROM regulations ORDER BY sort_order, id');
   const users = await db.q('SELECT id, username, ncoin, vcoin, exp, level, is_banned, reg_ip, created_at FROM users ORDER BY id DESC LIMIT 100');
-  const products = await db.q('SELECT * FROM products ORDER BY id DESC');
+  const shopCategories = await db.q('SELECT * FROM shop_categories ORDER BY sort_order, id');
+  const products = await db.q(`
+    SELECT p.*, sc.name as cat_name,
+      (SELECT COUNT(*)::int FROM product_stock ps WHERE ps.product_id=p.id AND ps.status='available') as pool_available
+    FROM products p LEFT JOIN shop_categories sc ON sc.id=p.category_id ORDER BY p.id DESC
+  `);
+  const customOrders = await db.q(`SELECT co.*, u.username FROM custom_orders co JOIN users u ON u.id=co.user_id WHERE co.status IN ('pending','quoted','confirmed') ORDER BY co.created_at ASC`);
   const settings = await db.q('SELECT * FROM settings');
   const s = {}; settings.forEach(x => s[x.key]=x.value);
 
@@ -28,15 +44,15 @@ router.get('/admin', async (req, res) => {
     ORDER BY ta.created_at DESC LIMIT 100
   `);
 
-  res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, settings: s, ipMonitor,
+  res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, shopCategories, customOrders, settings: s, ipMonitor,
     error: req.query.error||null, ok: req.query.ok||null });
 });
 
 // PROVIDERS
 router.post('/admin/providers', async (req, res) => {
-  const { id, api_key } = req.body;
+  const { id, api_key, api_endpoint } = req.body;
   if (id && api_key !== undefined) {
-    await db.run('UPDATE providers SET api_key=$1 WHERE id=$2', [api_key, id]);
+    await db.run('UPDATE providers SET api_key=$1, api_endpoint=$2 WHERE id=$3', [api_key, api_endpoint||'', id]);
   }
   res.redirect('/admin#providers');
 });
@@ -50,6 +66,19 @@ router.post('/admin/providers/:id/toggle', async (req, res) => {
   const p = await db.get('SELECT * FROM providers WHERE id=$1', [req.params.id]);
   if (p) await db.run('UPDATE providers SET active=$1 WHERE id=$2', [p.active?0:1, p.id]);
   res.redirect('/admin#providers');
+});
+// XOA NHA CUNG CAP: chi cho xoa neu khong con nhiem vu nao dang dung nha
+// cung cap nay (tranh nhiem vu bi "mo coi" - con task nhung khong biet dung
+// provider nao de tao link rut gon).
+router.post('/admin/providers/:id/delete', async (req, res) => {
+  const p = await db.get('SELECT * FROM providers WHERE id=$1', [req.params.id]);
+  if (!p) return res.redirect('/admin?error=Nhà cung cấp không tồn tại#providers');
+  const inUse = await db.get('SELECT COUNT(*)::int as c FROM tasks WHERE provider=$1', [p.name]);
+  if (inUse.c > 0) {
+    return res.redirect(`/admin?error=Không thể xóa: còn ${inUse.c} nhiệm vụ đang dùng nhà cung cấp này (hãy đổi nhiệm vụ sang NCC khác hoặc xóa nhiệm vụ trước)#providers`);
+  }
+  await db.run('DELETE FROM providers WHERE id=$1', [p.id]);
+  res.redirect('/admin?ok=1#providers');
 });
 
 // CATEGORIES
@@ -75,15 +104,17 @@ router.post('/admin/categories/:id/delete', async (req, res) => {
 
 // TASKS
 router.post('/admin/tasks', async (req, res) => {
-  const { name, category_id, provider, target_url, base_reward, exp_reward, min_seconds, daily_limit, ip_daily_limit } = req.body;
+  const { name, category_id, provider, target_url, base_reward, exp_reward, min_seconds, daily_limit, ip_daily_limit, reset_mode, reset_hours } = req.body;
   if (!name||!base_reward) return res.redirect('/admin?error=Thiếu thông tin');
   // URL dich khong bat buoc - mac dinh dua nguoi dung ve trang nhiem vu sau khi hoan thanh
   const finalTargetUrl = (target_url && target_url.trim()) ? target_url.trim() : `${process.env.BASE_URL}/tasks`;
+  const finalResetMode = reset_mode === 'rolling' ? 'rolling' : 'daily';
   await db.run(
-    `INSERT INTO tasks (name,category_id,provider,target_url,base_reward,exp_reward,min_seconds,daily_limit,ip_daily_limit,active,created_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,1,$10)`,
+    `INSERT INTO tasks (name,category_id,provider,target_url,base_reward,exp_reward,min_seconds,daily_limit,ip_daily_limit,reset_mode,reset_hours,active,created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1,$12)`,
     [name, category_id||null, provider||'link4m', finalTargetUrl, parseInt(base_reward),
-     parseInt(exp_reward)||1, parseInt(min_seconds)||15, parseInt(daily_limit)||2, parseInt(ip_daily_limit)||2, Date.now()]
+     parseInt(exp_reward)||1, parseInt(min_seconds)||15, parseInt(daily_limit)||2, parseInt(ip_daily_limit)||2,
+     finalResetMode, parseInt(reset_hours)||24, Date.now()]
   );
   res.redirect('/admin#tasks');
 });
@@ -175,14 +206,36 @@ router.post('/admin/users/create', async (req, res) => {
   const bcrypt = require('bcryptjs');
   const { username, password, ncoin, vcoin } = req.body;
   if (!username || !password || password.length < 6) return res.redirect('/admin?error=Thiếu tên đăng nhập hoặc mật khẩu tối thiểu 6 ký tự');
-  const existing = await db.get('SELECT id FROM users WHERE username=$1', [username]);
+  // VA LOI: truoc day cho phep username tuy y do dai (kieu "a", "1"...) o day
+  // dan den bug hien thi tren bang xep hang (nhieu user ten qua ngan nhin
+  // giong het nhau sau khi che ten). Dong bo cung quy tac voi trang dang ky:
+  // 4-20 ky tu, chi chu/so/gach duoi.
+  if (!/^[a-zA-Z0-9_]{4,20}$/.test(username)) return res.redirect('/admin?error=Tên đăng nhập phải 4-20 ký tự (chữ/số/gạch dưới)');
+  // VA LOI: kiem tra trung ten khong phan biet hoa/thuong, dong bo voi routes/auth.js
+  const existing = await db.get('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [username]);
   if (existing) return res.redirect('/admin?error=Tên đăng nhập đã tồn tại');
   const hash = bcrypt.hashSync(password, 10);
-  await db.run(
-    `INSERT INTO users (username,password_hash,ncoin,vcoin,exp,level,is_admin,created_at,reg_ip)
-     VALUES ($1,$2,$3,$4,0,1,0,$5,'admin-created')`,
-    [username, hash, parseInt(ncoin)||0, parseInt(vcoin)||0, Date.now()]
-  );
+  // VA LOI: truoc day tai khoan admin tao thu cong khong duoc sinh
+  // referral_code, khien user do khong co link gioi thieu rieng o trang
+  // /referral. Sinh ma giong het luc dang ky thuong.
+  const crypto = require('crypto');
+  let myReferralCode;
+  for (let i = 0; i < 10; i++) {
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const exists = await db.get('SELECT 1 FROM users WHERE referral_code=$1', [code]);
+    if (!exists) { myReferralCode = code; break; }
+  }
+  if (!myReferralCode) myReferralCode = crypto.randomBytes(8).toString('hex').toUpperCase();
+  try {
+    await db.run(
+      `INSERT INTO users (username,password_hash,ncoin,vcoin,exp,level,is_admin,created_at,reg_ip,referral_code)
+       VALUES ($1,$2,$3,$4,0,1,0,$5,'admin-created',$6)`,
+      [username, hash, parseInt(ncoin)||0, parseInt(vcoin)||0, Date.now(), myReferralCode]
+    );
+  } catch (e) {
+    if (e.code === '23505') return res.redirect('/admin?error=Tên đăng nhập đã tồn tại');
+    throw e;
+  }
   res.redirect('/admin?ok=1#users');
 });
 
@@ -214,11 +267,32 @@ router.post('/admin/users/:id/delete', async (req, res) => {
   res.redirect('/admin?ok=1#users');
 });
 
-// PRODUCTS + ORDERS
+// DANH MUC SAN PHAM (shop_categories)
+router.post('/admin/shop-categories', async (req, res) => {
+  const { name, icon, sort_order } = req.body;
+  if (!name || !name.trim()) return res.redirect('/admin?error=Tên danh mục không được để trống');
+  await db.run(
+    'INSERT INTO shop_categories (name,icon,sort_order,active,created_at) VALUES ($1,$2,$3,1,$4) ON CONFLICT (name) DO NOTHING',
+    [name.trim(), icon||'🛍️', parseInt(sort_order)||0, Date.now()]
+  );
+  res.redirect('/admin#shop');
+});
+router.post('/admin/shop-categories/:id/toggle', async (req, res) => {
+  const c = await db.get('SELECT * FROM shop_categories WHERE id=$1', [req.params.id]);
+  if (c) await db.run('UPDATE shop_categories SET active=$1 WHERE id=$2', [c.active?0:1, c.id]);
+  res.redirect('/admin#shop');
+});
+router.post('/admin/shop-categories/:id/delete', async (req, res) => {
+  await db.run('UPDATE products SET category_id=NULL WHERE category_id=$1', [req.params.id]);
+  await db.run('DELETE FROM shop_categories WHERE id=$1', [req.params.id]);
+  res.redirect('/admin?ok=1#shop');
+});
+
+// PRODUCTS (KHO HANG) + ORDERS
 router.post('/admin/products', async (req, res) => {
-  const { name, description, price, stock } = req.body;
-  await db.run('INSERT INTO products (name,description,price,stock,active,created_at) VALUES ($1,$2,$3,$4,1,$5)',
-    [name, description||'', parseInt(price)||0, parseInt(stock)||-1, Date.now()]);
+  const { name, description, category_id, price, stock, delivery_mode } = req.body;
+  await db.run('INSERT INTO products (category_id,name,description,price,stock,delivery_mode,active,created_at) VALUES ($1,$2,$3,$4,$5,$6,1,$7)',
+    [category_id||null, name, description||'', parseInt(price)||0, parseInt(stock)||-1, delivery_mode==='pool'?'pool':'manual', Date.now()]);
   res.redirect('/admin#shop');
 });
 router.post('/admin/products/:id/toggle', async (req, res) => {
@@ -226,10 +300,49 @@ router.post('/admin/products/:id/toggle', async (req, res) => {
   if (p) await db.run('UPDATE products SET active=$1 WHERE id=$2', [p.active?0:1, p.id]);
   res.redirect('/admin#shop');
 });
+router.post('/admin/products/:id/restock', async (req, res) => {
+  const { stock } = req.body;
+  if (stock === undefined || stock === '') return res.redirect('/admin?error=Nhập số lượng kho mới');
+  await db.run('UPDATE products SET stock=$1 WHERE id=$2', [parseInt(stock), req.params.id]);
+  res.redirect('/admin#shop');
+});
+// Them hang loat tai khoan/thong tin vao "kho" cua 1 san pham kieu 'pool'
+// (moi dong 1 mon hang, se tu dong giao cho khach khi ho mua - xem routes/shop.js)
+router.post('/admin/products/:id/stock', async (req, res) => {
+  const { items } = req.body;
+  if (!items || !items.trim()) return res.redirect('/admin?error=Chưa nhập nội dung kho hàng');
+  const lines2 = items.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines2.length === 0) return res.redirect('/admin?error=Chưa nhập nội dung kho hàng');
+  const now = Date.now();
+  for (const line of lines2) {
+    await db.run('INSERT INTO product_stock (product_id,content,status,created_at) VALUES ($1,$2,$3,$4)', [req.params.id, line, 'available', now]);
+  }
+  res.redirect('/admin?ok=1#shop');
+});
+// XOA SAN PHAM: chi cho xoa neu chua tung co ai mua (con don hang tham chieu
+// toi) - tranh lam "mo coi" lich su don hang cua khach. Neu da co nguoi mua,
+// chi nen Tat (an di) thay vi Xoa.
+router.post('/admin/products/:id/delete', async (req, res) => {
+  const inUse = await db.get('SELECT COUNT(*)::int as c FROM orders WHERE product_id=$1', [req.params.id]);
+  if (inUse.c > 0) {
+    return res.redirect(`/admin?error=Không thể xóa: đã có ${inUse.c} đơn hàng của sản phẩm này (dùng nút Tắt thay vì Xóa để giữ lịch sử)#shop`);
+  }
+  await db.run('DELETE FROM product_stock WHERE product_id=$1', [req.params.id]);
+  await db.run('DELETE FROM products WHERE id=$1', [req.params.id]);
+  res.redirect('/admin?ok=1#shop');
+});
+
+// Xu ly don hang mua san pham (chi ap dung cho don kieu 'manual', vi don
+// 'pool' da tu dong hoan tat + giao hang ngay luc mua roi)
 router.post('/admin/orders/:id/:action', async (req, res) => {
   const { id, action } = req.params;
-  if (action==='done') await db.run("UPDATE orders SET status='completed', processed_at=$1 WHERE id=$2", [Date.now(), id]);
-  else {
+  if (action === 'done') {
+    const { delivery_info } = req.body;
+    await db.run(
+      "UPDATE orders SET status='completed', delivery_info=$1, processed_at=$2 WHERE id=$3",
+      [delivery_info || '', Date.now(), id]
+    );
+  } else {
     const o = await db.get('SELECT * FROM orders WHERE id=$1', [id]);
     if (o) {
       if (o.price_ncoin>0) await db.run('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [o.price_ncoin, o.user_id]);
@@ -239,6 +352,57 @@ router.post('/admin/orders/:id/:action', async (req, res) => {
   }
   res.redirect('/admin#shop');
 });
+
+// DON DAT HANG TUY CHINH
+// admin bao gia mot don dang cho ('pending' -> 'quoted')
+router.post('/admin/custom-orders/:id/quote', async (req, res) => {
+  const { quoted_price, admin_note } = req.body;
+  const price = parseInt(quoted_price);
+  if (!price || price <= 0) return res.redirect('/admin?error=Nhập giá báo hợp lệ');
+  const order = await db.get('SELECT * FROM custom_orders WHERE id=$1', [req.params.id]);
+  if (!order || order.status !== 'pending') return res.redirect('/admin?error=Đơn không ở trạng thái chờ báo giá');
+  await db.run(
+    "UPDATE custom_orders SET status='quoted', quoted_price=$1, admin_note=$2, updated_at=$3 WHERE id=$4",
+    [price, admin_note||'', Date.now(), order.id]
+  );
+  res.redirect('/admin?ok=1#shop');
+});
+// admin huy don khi con chua thanh toan (pending/quoted) - khong can hoan tien vi chua tru
+router.post('/admin/custom-orders/:id/reject', async (req, res) => {
+  const order = await db.get('SELECT * FROM custom_orders WHERE id=$1', [req.params.id]);
+  if (!order) return res.redirect('/admin?error=Đơn không tồn tại');
+  if (!['pending','quoted'].includes(order.status)) return res.redirect('/admin?error=Đơn đã thanh toán, dùng nút Hủy & hoàn tiền');
+  await db.run("UPDATE custom_orders SET status='rejected', updated_at=$1 WHERE id=$2", [Date.now(), order.id]);
+  res.redirect('/admin?ok=1#shop');
+});
+// admin huy don DA THANH TOAN (status='confirmed') va hoan lai coin cho user
+router.post('/admin/custom-orders/:id/refund', async (req, res) => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const orderLock = await client.query('SELECT * FROM custom_orders WHERE id=$1 FOR UPDATE', [req.params.id]);
+    const order = orderLock.rows[0];
+    if (!order || order.status !== 'confirmed') { await client.query('ROLLBACK'); return res.redirect('/admin?error=Đơn không ở trạng thái đã thanh toán'); }
+    if (order.price_ncoin > 0) await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [order.price_ncoin, order.user_id]);
+    if (order.price_vcoin > 0) await client.query('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [order.price_vcoin, order.user_id]);
+    await client.query("UPDATE custom_orders SET status='rejected', updated_at=$1 WHERE id=$2", [Date.now(), order.id]);
+    await client.query('COMMIT');
+  } catch(e) { await client.query('ROLLBACK'); console.error(e); } finally { client.release(); }
+  res.redirect('/admin?ok=1#shop');
+});
+// admin gui thong tin giao hang (tai khoan/mat khau...) va danh dau da xong
+// (chi khi da thanh toan - 'confirmed')
+router.post('/admin/custom-orders/:id/complete', async (req, res) => {
+  const { delivery_info } = req.body;
+  const order = await db.get('SELECT * FROM custom_orders WHERE id=$1', [req.params.id]);
+  if (!order || order.status !== 'confirmed') return res.redirect('/admin?error=Đơn phải ở trạng thái đã thanh toán mới hoàn tất được');
+  await db.run(
+    "UPDATE custom_orders SET status='completed', delivery_info=$1, updated_at=$2 WHERE id=$3",
+    [delivery_info || '', Date.now(), order.id]
+  );
+  res.redirect('/admin?ok=1#shop');
+});
+
 
 // ANNOUNCEMENTS
 router.post('/admin/announcements', async (req, res) => {

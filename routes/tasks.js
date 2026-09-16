@@ -12,6 +12,20 @@ const CLICK_COOLDOWN_MS = 10 * 1000; // delay 10 giay giua cac lan bam "Lay link
 // Luu thoi diem bam gan nhat cua tung user (chong spam tao link lien tuc)
 const lastClickMap = new Map();
 
+// Tinh moc thoi gian "tinh tu day" de dem so luot da hoan thanh, tuy theo
+// kieu reset cua tung nhiem vu (admin chon o trang quan tri):
+// - 'daily'  : reset co dinh vao 00:00 (gio VN) moi ngay cho TAT CA moi
+//              nguoi cung luc, bat ke ho vuot link luc may gio hom truoc.
+// - 'rolling': reset theo kieu "lan" ca nhan - moi nguoi tu mo khoa lai sau
+//              dung task.reset_hours gio KE TU LAN VUOT GAN NHAT cua chinh
+//              ho, khong lien quan gio 00:00 hay nguoi khac.
+function getTaskResetSince(task) {
+  if (task.reset_mode === 'rolling') {
+    return Date.now() - (parseInt(task.reset_hours) || 24) * 60 * 60 * 1000;
+  }
+  return getDayStart();
+}
+
 router.get('/tasks', async (req, res) => {
   const user = req.user;
 
@@ -20,12 +34,12 @@ router.get('/tasks', async (req, res) => {
 
   const categories = await db.q('SELECT * FROM task_categories WHERE active=1 ORDER BY sort_order');
   const tasks = await db.q('SELECT * FROM tasks WHERE active=1 ORDER BY category_id, id DESC');
-  const since = getDayStart();
   const multiplier = getMultiplier();
   const secondsUntilReset = getSecondsUntilReset();
   const announcements = await db.q("SELECT * FROM announcements WHERE active=1 ORDER BY created_at DESC LIMIT 3");
 
   const tasksWithInfo = await Promise.all(tasks.map(async t => {
+    const since = getTaskResetSince(t);
     const done = await db.get(
       `SELECT COUNT(*) as c FROM task_attempts WHERE user_id=$1 AND task_id=$2 AND status='completed' AND created_at>$3`,
       [user.id, t.id, since]
@@ -58,6 +72,11 @@ router.post('/tasks/:id/start', async (req, res) => {
     return res.redirect(`/tasks?error=Vui lòng đợi ${remain} giây và thử lại`);
   }
   lastClickMap.set(user.id, now0);
+
+  // VA LOI: validate id la so nguyen truoc khi query (tranh loi kieu du lieu Postgres)
+  if (!/^\d+$/.test(String(req.params.id))) {
+    return res.redirect('/tasks?error=Nhiệm vụ không tồn tại');
+  }
 
   const task = await db.get('SELECT * FROM tasks WHERE id=$1 AND active=1', [req.params.id]);
   if (!task) return res.redirect('/tasks?error=Nhiệm vụ không tồn tại');
@@ -92,24 +111,24 @@ router.post('/tasks/:id/start', async (req, res) => {
     }
   }
 
-  // Kiem tra gioi han IP theo nhiem vu
+  // Kiem tra gioi han IP theo nhiem vu (cung theo kieu reset rieng cua nhiem vu)
+  const resetSince = getTaskResetSince(task);
   const ipToday = await db.get(
     `SELECT COUNT(*) as c FROM task_attempts
      WHERE task_id=$1 AND ip_created=$2 AND status='completed' AND created_at>$3`,
-    [task.id, ip, getDayStart()]
+    [task.id, ip, resetSince]
   );
   if (parseInt(ipToday.c) >= task.ip_daily_limit) {
-    return res.redirect(`/tasks?error=IP này đã đạt giới hạn ${task.ip_daily_limit} lượt/ngày cho nhiệm vụ này`);
+    return res.redirect(`/tasks?error=IP này đã đạt giới hạn ${task.ip_daily_limit} lượt cho nhiệm vụ này, thử lại sau`);
   }
 
   // Kiem tra gioi han user
-  const since = getDayStart();
   const userDone = await db.get(
     `SELECT COUNT(*) as c FROM task_attempts WHERE user_id=$1 AND task_id=$2 AND status='completed' AND created_at>$3`,
-    [user.id, task.id, since]
+    [user.id, task.id, resetSince]
   );
   if (parseInt(userDone.c) >= task.daily_limit) {
-    return res.redirect('/tasks?error=Bạn đã hết lượt cho nhiệm vụ này hôm nay');
+    return res.redirect('/tasks?error=Bạn đã hết lượt cho nhiệm vụ này, vui lòng thử lại sau');
   }
 
   // Ghi nhan IP - user mapping
@@ -142,6 +161,10 @@ router.post('/tasks/:id/start', async (req, res) => {
 
 // Trang "Xac minh" trung gian - hien thi truoc khi dua nguoi dung sang link that su
 router.get('/go/:id', async (req, res) => {
+  // VA LOI: validate id la so nguyen truoc khi query (tranh loi kieu du lieu Postgres)
+  if (!/^\d+$/.test(String(req.params.id))) {
+    return res.redirect('/tasks?error=Không tìm thấy nhiệm vụ');
+  }
   const attempt = await db.get(
     `SELECT ta.*, t.name as task_name FROM task_attempts ta JOIN tasks t ON t.id=ta.task_id WHERE ta.id=$1 AND ta.user_id=$2`,
     [req.params.id, req.user.id]

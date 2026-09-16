@@ -9,43 +9,124 @@
 <div class="topbar"><div class="topbar-title">🛍️ Quy Đổi Sản Phẩm</div></div>
 <div class="page">
 <%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
-<%if(ok){%><div class="alert alert-success">✅ Đặt hàng thành công! Admin sẽ xử lý sớm.</div><%}%>
+<%if(ok){%><div class="alert alert-success">✅ Thao tác thành công!</div><%}%>
 <div style="display:flex;gap:12px;margin-bottom:16px;padding:14px;background:var(--card);border:1px solid var(--card-border);border-radius:12px">
   <span class="coin-wrap"><span class="ni">N</span><b style="color:#f59e0b"><%=user.ncoin.toLocaleString('vi-VN')%>N</b></span>
   <span class="coin-wrap"><span class="vi">V</span><b style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN')%>V</b></span>
 </div>
-<div class="task-grid">
+
+<%if(categories.length>0){%>
+<div class="tabs" id="catTabs">
+  <button class="tab-btn active" onclick="filterCat('all',this)">🗂️ Tất cả</button>
+  <%categories.forEach(c=>{%><button class="tab-btn" onclick="filterCat('<%=c.id%>',this)"><%=c.icon%> <%=c.name%></button><%})%>
+</div>
+<%}%>
+
+<div class="task-grid" id="productGrid">
   <%products.forEach(p=>{%>
-  <div class="product-card">
+  <div class="product-card" data-cat="<%=p.category_id||'none'%>">
     <div class="product-name"><%=p.name%></div>
     <%if(p.description){%><div style="font-size:12px;color:var(--text2);margin-bottom:8px"><%=p.description%></div><%}%>
     <div class="product-price">
       <span class="price-tag" style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(96,165,250,0.15));color:var(--text)">
-        <%=(p.price||0).toLocaleString('vi-VN')%> coin
+        <%=(p.price||0).toLocaleString('vi-VN')%> coin / cái
       </span>
     </div>
     <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Ưu tiên trừ Ncoin trước, thiếu mới trừ Vcoin</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:10px"><%=p.stock===-1?'Không giới hạn':p.stock===0?'Hết hàng':`Còn ${p.stock}`%></div>
-    <form method="POST" action="/shop/<%=p.id%>/buy"><button class="btn-task" <%=p.stock===0?'disabled':''%>><%=p.stock===0?'Hết hàng':'🛍️ Đổi ngay'%></button></form>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px"><%=p.effective_stock===-1?'Không giới hạn':p.effective_stock===0?'Hết hàng':`Còn ${p.effective_stock}`%></div>
+    <form method="POST" action="/shop/<%=p.id%>/buy" style="display:flex;gap:6px">
+      <input name="quantity" type="number" min="1" max="<%=p.effective_stock===-1?50:Math.min(50,p.effective_stock)%>" value="1" style="width:64px;padding:8px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);text-align:center" <%=p.effective_stock===0?'disabled':''%>>
+      <button class="btn-task" style="flex:1" <%=p.effective_stock===0?'disabled':''%>><%=p.effective_stock===0?'Hết hàng':'🛍️ Đổi ngay'%></button>
+    </form>
   </div>
   <%})%>
 </div>
 <%if(products.length===0){%><div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">🛍️</div><div style="color:var(--text2)">Chưa có sản phẩm nào.</div></div><%}%>
+
+<div class="card" style="margin-top:16px" id="custom">
+  <div class="card-title">✍️ Đặt hàng tùy chỉnh (thứ bạn muốn mà chưa có trong danh sách trên)</div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Mô tả thứ bạn muốn mua/đổi, admin sẽ báo giá bằng coin, bạn đồng ý thì mới bị trừ coin.</div>
+  <form method="POST" action="/shop/custom" style="display:grid;gap:8px;margin-bottom:16px">
+    <input name="title" placeholder="Tên/mô tả ngắn (VD: Acc Facebook 5 năm tuổi)" required style="padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text)">
+    <textarea name="details" placeholder="Chi tiết thêm (không bắt buộc)" rows="3" style="padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text);resize:vertical"></textarea>
+    <button class="btn btn-primary" style="width:fit-content" type="submit">📩 Gửi yêu cầu</button>
+  </form>
+
+  <%if(myCustomOrders.length>0){%>
+  <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">Đơn tùy chỉnh của bạn</div>
+  <%myCustomOrders.forEach(o=>{%>
+  <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;flex-wrap:wrap">
+      <div>
+        <div style="font-weight:600"><%=o.title%> <span style="font-size:11px;color:var(--text2);font-weight:400">(mã <%=o.order_code%>)</span></div>
+        <%if(o.details){%><div style="font-size:12px;color:var(--text2)"><%=o.details%></div><%}%>
+      </div>
+      <%if(o.status==='pending'){%><span class="badge badge-warning">⏳ Chờ báo giá</span>
+      <%}else if(o.status==='quoted'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">💰 Đã báo giá</span>
+      <%}else if(o.status==='confirmed'){%><span class="badge badge-warning">📦 Đang xử lý</span>
+      <%}else if(o.status==='completed'){%><span class="badge badge-success">✅ Hoàn tất</span>
+      <%}else{%><span class="badge badge-danger"><%=o.status==='cancelled'?'Đã hủy':'Đã từ chối'%></span><%}%>
+    </div>
+    <%if(o.status==='quoted'){%>
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>Giá đề nghị: <b class="coin-wrap"><%=(o.quoted_price||0).toLocaleString('vi-VN')%> coin</b>
+        <%if(o.admin_note){%><div style="font-size:11px;color:var(--text2)">Ghi chú admin: <%=o.admin_note%></div><%}%></div>
+      <div style="display:flex;gap:6px">
+        <form method="POST" action="/shop/custom/<%=o.id%>/confirm"><button class="btn btn-sm btn-success" type="submit">✅ Đồng ý & thanh toán</button></form>
+        <form method="POST" action="/shop/custom/<%=o.id%>/cancel"><button class="btn btn-sm btn-danger" type="submit">❌ Từ chối</button></form>
+      </div>
+    </div>
+    <%}else if(o.status==='pending'){%>
+    <div style="margin-top:8px"><form method="POST" action="/shop/custom/<%=o.id%>/cancel"><button class="btn btn-sm btn-outline" type="submit">Hủy yêu cầu</button></form></div>
+    <%}else if(o.status==='confirmed'||o.status==='completed'){%>
+    <div style="margin-top:6px;font-size:12px;color:var(--text2)">Đã thanh toán: <span class="coin-wrap"><%if(o.price_ncoin>0){%><span class="ni sm">N</span><%=o.price_ncoin.toLocaleString('vi-VN')%><%}%><%if(o.price_vcoin>0){%> <span class="vi sm">V</span><%=o.price_vcoin.toLocaleString('vi-VN')%><%}%></span></div>
+    <%if(o.status==='confirmed'){%><div style="margin-top:4px;font-size:12px;color:var(--text2)">Admin đang chuẩn bị giao hàng cho bạn...</div><%}%>
+    <%if(o.status==='completed'&&o.delivery_info){%>
+    <div style="margin-top:8px;padding:10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all"><%=o.delivery_info%></div>
+    <div style="font-size:11px;color:var(--text2);margin-top:4px">⚠️ Thông tin này sẽ tự xóa sau 30 ngày, hãy lưu lại sớm.</div>
+    <%}%>
+    <%}%>
+  </div>
+  <%})%>
+  <%}%>
+</div>
+
 <%if(myOrders.length>0){%>
 <div class="card" style="margin-top:14px">
   <div class="card-title">📦 Đơn hàng của bạn</div>
-  <table>
-    <tr><th>Sản phẩm</th><th>Giá</th><th>Trạng thái</th><th>Ngày</th></tr>
-    <%myOrders.forEach(o=>{%>
-    <tr>
-      <td><%=o.pname%></td>
-      <td><%if(o.price_ncoin>0){%><span class="coin-wrap"><span class="ni sm">N</span><%=o.price_ncoin.toLocaleString('vi-VN')%></span><%}%><%if(o.price_vcoin>0){%><span class="coin-wrap"><span class="vi sm">V</span><%=o.price_vcoin.toLocaleString('vi-VN')%></span><%}%></td>
-      <td><%if(o.status==='completed'){%><span class="badge badge-success">✅ Xong</span><%}else if(o.status==='rejected'){%><span class="badge badge-danger">❌ Hủy</span><%}else{%><span class="badge badge-warning">⏳ Chờ</span><%}%></td>
-      <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(o.created_at)).toLocaleDateString('vi-VN')%></td>
-    </tr>
-    <%})%>
-  </table>
+  <div style="font-size:11px;color:var(--text2);margin-bottom:10px">⚠️ Thông tin tài khoản/mật khẩu chỉ hiển thị trong 30 ngày kể từ ngày nhận hàng, sau đó sẽ tự động bị xóa vĩnh viễn - hãy lưu lại sớm.</div>
+  <%myOrders.forEach(o=>{%>
+  <div style="padding:12px;border:1px solid var(--card-border);border-radius:10px;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div><b><%=o.pname%></b> x<%=o.quantity||1%> <span style="font-size:11px;color:var(--text2)">(mã <%=o.order_code%>)</span></div>
+        <div style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(o.created_at)).toLocaleDateString('vi-VN')%></div>
+      </div>
+      <div style="text-align:right">
+        <div><%if(o.price_ncoin>0){%><span class="coin-wrap"><span class="ni sm">N</span><%=o.price_ncoin.toLocaleString('vi-VN')%></span><%}%><%if(o.price_vcoin>0){%><span class="coin-wrap"><span class="vi sm">V</span><%=o.price_vcoin.toLocaleString('vi-VN')%></span><%}%></div>
+        <%if(o.status==='completed'){%><span class="badge badge-success">✅ Xong</span><%}else if(o.status==='rejected'){%><span class="badge badge-danger">❌ Hủy (đã hoàn tiền)</span><%}else{%><span class="badge badge-warning">⏳ Đang xử lý</span><%}%>
+      </div>
+    </div>
+    <%if(o.status==='completed'){%>
+      <%if(o.delivery_info){%>
+      <div style="margin-top:8px;padding:10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all"><%=o.delivery_info%></div>
+      <%}else{%>
+      <div style="margin-top:6px;font-size:12px;color:var(--text2)">Đã hết hạn xem lại (quá 30 ngày) hoặc sản phẩm không cần giao thông tin.</div>
+      <%}%>
+    <%}%>
+  </div>
+  <%})%>
 </div>
 <%}%>
 </div></div>
+<script>
+function filterCat(catId, btn) {
+  document.querySelectorAll('#catTabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#productGrid .product-card').forEach(card=>{
+    card.style.display = (catId==='all' || card.dataset.cat===catId) ? '' : 'none';
+  });
+}
+if(location.hash==='#custom'){ document.getElementById('custom').scrollIntoView(); }
+</script>
 </body></html>

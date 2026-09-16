@@ -7,7 +7,8 @@ if (typeof activePopup !== 'undefined' && activePopup) {
   <div class="popup-box">
     <button class="popup-close" onclick="closePopup()">✕</button>
     <div class="popup-title"><%=activePopup.title%></div>
-    <div class="popup-content"><%=activePopup.content.replace(/\n/g,'<br>')%></div>
+    <!-- activePopup.content da duoc escape HTML va chuyen xuong dong thanh <br> san o server.js (middleware popup), nen o day dung <%- %> de xuat ra dung, khong bi escape lan 2 (loi hien thi cu: text hien "<br>" thay vi xuong dong that) -->
+    <div class="popup-content"><%- activePopup.content %></div>
     <div class="popup-footer">
       <label class="popup-no-show">
         <input type="checkbox" id="noShowToday" onchange="handleNoShow(this)">
