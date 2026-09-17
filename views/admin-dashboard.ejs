@@ -20,22 +20,22 @@
     <div class="grid4" style="margin-bottom:16px">
       <div class="stat-card">
         <div class="stat-label"><span class="ni sm">N</span> Tổng Ncoin đã trả</div>
-        <div class="stat-value" style="color:#f59e0b"><%=totalNcoin.toLocaleString('vi-VN')%></div>
+        <div class="stat-value" style="color:#f59e0b"><%=totalNcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub">Trong khoảng thời gian đã chọn</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">⚡ Tổng lượt vượt link</div>
-        <div class="stat-value"><%=totalLinks.toLocaleString('vi-VN')%></div>
+        <div class="stat-value"><%=totalLinks.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub">Đã hoàn thành</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">👥 Tổng users</div>
-        <div class="stat-value"><%=totalUsers.toLocaleString('vi-VN')%></div>
+        <div class="stat-value"><%=totalUsers.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub">Toàn hệ thống</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">💸 Rút tiền chờ duyệt</div>
-        <div class="stat-value" style="color:#ef4444"><%=pendingWithdrawAmount.toLocaleString('vi-VN')%>đ</div>
+        <div class="stat-value" style="color:#ef4444"><%=pendingWithdrawAmount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>đ</div>
         <div class="stat-sub"><%=pendingWithdrawCount%> yêu cầu</div>
       </div>
     </div>
@@ -46,7 +46,7 @@
         <%const mx=Math.max(...days.map(d=>d.total),1);%>
         <%days.forEach(d=>{%>
         <div class="chart-col">
-          <div class="chart-bar" style="height:<%=Math.max(3,Math.round(d.total/mx*100))%>%" title="<%=d.date%>: <%=d.total.toLocaleString('vi-VN')%>N"></div>
+          <div class="chart-bar" style="height:<%=Math.max(3,Math.round(d.total/mx*100))%>%" title="<%=d.date%>: <%=d.total.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>N"></div>
           <div class="chart-lbl"><%=d.date%></div>
         </div><%})%>
       </div>
@@ -60,8 +60,8 @@
         <tr>
           <td><%=i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1%></td>
           <td><b><%=u.username%></b></td>
-          <td><%=parseInt(u.link_count).toLocaleString('vi-VN')%></td>
-          <td><span class="coin-wrap"><span class="ni sm">N</span><%=parseInt(u.ncoin_sum).toLocaleString('vi-VN')%></span></td>
+          <td><%=parseInt(u.link_count).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
+          <td><span class="coin-wrap"><span class="ni sm">N</span><%=parseInt(u.ncoin_sum).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span></td>
         </tr>
         <%})%>
       </table>

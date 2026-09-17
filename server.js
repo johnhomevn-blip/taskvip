@@ -57,6 +57,35 @@ if (process.env.CANONICAL_HOST) {
   });
 }
 
+// LOP PHONG THU CHAC CHAN HON cho van de Cloudflare/Railway o tren: kiem tra
+// Host header (o tren) CHi dam bao request "tu xung" la den tu dung ten mien
+// - KHONG dam bao request do THAT SU di qua Cloudflare (tuy vao cach Railway
+// dinh tuyen noi bo theo Host header ma client tu dat, ke gian van co the
+// gia mao duoc). Cach dam bao CHAC CHAN hon: 1 header BI MAT ma CHI
+// Cloudflare moi chen duoc vao request (qua Transform Rule), khong the bi
+// client tu dat vi Cloudflare se GHI DE bat ky gia tri client tu gui truoc
+// do bang gia tri that cua no.
+//
+// CACH BAT (tuy chon, khong bat buoc - neu khong dat CF_ORIGIN_SECRET thi bo
+// qua kiem tra nay, khong lam hong gi ca):
+//   1) Vao Cloudflare Dashboard > ten mien > Rules > Transform Rules >
+//      Modify Request Header > tao rule: "Set static" header ten
+//      "X-Origin-Secret" gia tri la 1 chuoi ngau nhien dai (tu tao, giu bi
+//      mat), ap dung cho MOI request (hoac it nhat cho /verify, /login,
+//      /register, /wallet/withdraw).
+//   2) Dat CUNG chuoi do vao bien moi truong CF_ORIGIN_SECRET tren Railway.
+// Sau khi bat ca 2, request nao KHONG mang dung header nay se bi tu choi -
+// nghia la request phai THAT SU di qua Cloudflare (noi header duoc chen vao
+// that su), khong con cach nao goi thang toi Railway ma gia mao duoc nua.
+if (process.env.CF_ORIGIN_SECRET) {
+  app.use((req, res, next) => {
+    if (req.headers['x-origin-secret'] !== process.env.CF_ORIGIN_SECRET) {
+      return res.status(403).send('Không có quyền truy cập trực tiếp.');
+    }
+    next();
+  });
+}
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
@@ -153,11 +182,22 @@ function auth(req, res, next) { if (!req.user) return res.redirect('/login'); ne
 // nay, cho dong "app.get('/', ...)")
 
 // Chong brute-force / spam dang nhap, dang ky
+// VA LOI DA SUA (2026-09): truoc day dung keyGenerator MAC DINH cua thu vien
+// (dua vao req.ip) - nhung req.ip van dinh DUNG lo hong 2 tang proxy
+// Cloudflare+Railway ma ban da tu phat hien va va cho getClientIp() (xem
+// lib/ip.js), CHI RIENG rate-limiter nay quen chua ap dung cung cach va do.
+// Hau qua thuc te: rate-limiter co the dang tinh CHUNG 1 "IP" (IP cua tang
+// proxy trung gian, giong het nhau cho MOI nguoi dung that) cho tat ca moi
+// nguoi - nghia la CHI CAN gop du 30 luot dang nhap/dang ky/rut tien tu TAT
+// CA nguoi dung cong lai trong 15 phut la TOAN BO site tu khoa lan nhau,
+// khong ai spam gi ca. Gio dung CHINH getClientIp() de dong bo voi phan con
+// lai cua he thong - moi nguoi dung that su co 1 "bucket" gioi han rieng.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => getClientIp(req),
   message: 'Bạn thao tác quá nhiều lần, vui lòng thử lại sau ít phút.'
 });
 

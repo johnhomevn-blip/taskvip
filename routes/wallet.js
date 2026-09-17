@@ -75,6 +75,13 @@ router.post('/wallet/withdraw', async (req, res) => {
   // Phi rut tinh theo cap do (tier) hien tai cua user
   const { fee } = await getFeeForUser(user);
 
+  // VA LOI DA SUA (2026-09, "rút 10k phí 2500 thì phải có 12k5"): truoc day
+  // "fee" chi duoc GHI NHAN de hien thi, KHONG THUC SU bi tru khoi vi - nguoi
+  // dung rut duoc dung "amount" ho yeu cau ma khong can du them tien cho phi.
+  // Gio phi la khoan THEM VAO TREN "amount" (khong phai tru bot tu amount):
+  // muon rut ve tay "amount" thi vi phai co it nhat "amount + fee".
+  const totalCharge = amount + fee;
+
   // VA LOI RACE CONDITION (TOCTOU): truoc day so du duoc doc tu req.user (da
   // load san tu dau request, "cu"), roi UPDATE ncoin=ncoin-$1 / vcoin=vcoin-$1
   // KHONG co dieu kien rang buoc so du con lai. Neu nguoi dung (hoac script)
@@ -102,14 +109,14 @@ router.post('/wallet/withdraw', async (req, res) => {
     const freshVcoinUnlocked = parseInt(unlockedRes.rows[0]?.total || 0);
     const totalAvailable = freshUser.ncoin + freshVcoinUnlocked;
 
-    if (amount > totalAvailable) {
+    if (totalCharge > totalAvailable) {
       await client.query('ROLLBACK');
-      return res.redirect(`/wallet?error=Số dư có thể rút không đủ (Ncoin: ${freshUser.ncoin.toLocaleString('vi-VN')} + Vcoin đã mở khóa: ${freshVcoinUnlocked.toLocaleString('vi-VN')})`);
+      return res.redirect(`/wallet?error=Số dư không đủ - cần ${totalCharge.toLocaleString('vi-VN')} coin (${amount.toLocaleString('vi-VN')} rút + ${fee.toLocaleString('vi-VN')} phí), hiện có Ncoin: ${freshUser.ncoin.toLocaleString('vi-VN')} + Vcoin đã mở khóa: ${freshVcoinUnlocked.toLocaleString('vi-VN')}`);
     }
 
-    // Uu tien tru Ncoin truoc
-    let deductNcoin = Math.min(freshUser.ncoin, amount);
-    let deductVcoin = amount - deductNcoin;
+    // Uu tien tru Ncoin truoc - tru DU CA PHI (totalCharge), khong chi tru "amount"
+    let deductNcoin = Math.min(freshUser.ncoin, totalCharge);
+    let deductVcoin = totalCharge - deductNcoin;
 
     if (deductVcoin > freshUser.vcoin) {
       // Phong thu them: khong the tru vcoin nhieu hon so du vcoin thuc te dang co
@@ -125,10 +132,14 @@ router.post('/wallet/withdraw', async (req, res) => {
       const r2 = await client.query('UPDATE users SET vcoin=vcoin-$1 WHERE id=$2 AND vcoin>=$1', [deductVcoin, user.id]);
       if (r2.rowCount === 0) throw new Error('Không đủ Vcoin (race condition đã bị chặn)');
     }
-    await client.query(`INSERT INTO withdrawals (user_id,amount,method,detail,status,fee,created_at) VALUES ($1,$2,$3,$4,'pending',$5,$6)`,
-      [user.id, amount, method, detail, fee, Date.now()]);
+    // Luu lai DUNG ty le Ncoin/Vcoin da tru (ncoin_used/vcoin_used) - de neu
+    // admin tu choi sau nay, hoan tien LAI DUNG LOAI COIN da tru, khong hoan
+    // nham tat ca thanh Ncoin (xem giai thich chi tiet trong db.js, cho ALTER
+    // TABLE withdrawals ADD COLUMN ncoin_used/vcoin_used).
+    await client.query(`INSERT INTO withdrawals (user_id,amount,method,detail,status,fee,ncoin_used,vcoin_used,created_at) VALUES ($1,$2,$3,$4,'pending',$5,$6,$7,$8)`,
+      [user.id, amount, method, detail, fee, deductNcoin, deductVcoin, Date.now()]);
     await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'withdraw',$2,'ncoin',$3,$4)`,
-      [user.id, amount, `Rút tiền qua ${method} (phí: ${fee.toLocaleString('vi-VN')}đ)`, Date.now()]);
+      [user.id, totalCharge, `Rút ${amount.toLocaleString('vi-VN')}đ qua ${method} (phí: ${fee.toLocaleString('vi-VN')}đ, tổng trừ: ${totalCharge.toLocaleString('vi-VN')})`, Date.now()]);
     await client.query('COMMIT');
   } catch(e) { await client.query('ROLLBACK'); console.error(e); return res.redirect('/wallet?error=Lỗi, thử lại sau'); }
   finally { client.release(); }

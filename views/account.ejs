@@ -20,14 +20,14 @@
     <div class="exp-bar-wrap" style="margin-bottom:16px">
       <div class="exp-bar-info">
         <span>Level <%=levelInfo.level%></span>
-        <span><%=levelInfo.expInLevel.toLocaleString('vi-VN')%>/<%=levelInfo.expNeeded>0?levelInfo.expNeeded.toLocaleString('vi-VN'):'MAX'%> EXP</span>
+        <span><%=levelInfo.expInLevel.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>/<%=levelInfo.expNeeded>0?levelInfo.expNeeded.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}):'MAX'%> EXP</span>
         <%if(levelInfo.level<50){%><span>→ Lv.<%=levelInfo.level+1%></span><%}%>
       </div>
       <div class="exp-bar-track"><div class="exp-bar-fill" style="width:<%=levelInfo.expNeeded>0?Math.min(100,Math.round(levelInfo.expInLevel/levelInfo.expNeeded*100)):100%>%"></div></div>
-      <div style="font-size:11px;color:var(--text2);margin-top:3px">Tổng <%=user.exp.toLocaleString('vi-VN')%> EXP</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:3px">Tổng <%=user.exp.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> EXP</div>
     </div>
     <div style="font-size:13px">
-      <%[['🪙 Ncoin',user.ncoin.toLocaleString('vi-VN')+'N','#f59e0b'],['💎 Vcoin',user.vcoin.toLocaleString('vi-VN')+'V','#60a5fa'],['📅 Tham gia',new Date(parseInt(user.created_at)).toLocaleDateString('vi-VN'),'var(--text)'],['🌐 IP đăng ký',user.reg_ip||'—','var(--text2)']].forEach(([label,val,color])=>{%>
+      <%[['🪙 Ncoin',user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})+'N','#f59e0b'],['💎 Vcoin',user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})+'V','#60a5fa'],['📅 Tham gia',new Date(parseInt(user.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}),'var(--text)'],['🌐 IP đăng ký',user.reg_ip||'—','var(--text2)']].forEach(([label,val,color])=>{%>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--card-border)">
         <span style="color:var(--text2)"><%=label%></span><b style="color:<%=color%>"><%=val%></b>
       </div>

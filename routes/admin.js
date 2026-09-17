@@ -31,14 +31,13 @@ router.get('/admin', async (req, res) => {
       (SELECT COUNT(*)::int FROM product_stock ps WHERE ps.product_id=p.id AND ps.status='available') as pool_available
     FROM products p LEFT JOIN shop_categories sc ON sc.id=p.category_id ORDER BY p.id DESC
   `);
-  const customOrders = await db.q(`SELECT co.*, u.username FROM custom_orders co JOIN users u ON u.id=co.user_id WHERE co.status IN ('pending','quoted','confirmed') ORDER BY co.created_at ASC`);
   const settings = await db.q('SELECT * FROM settings');
   const s = {}; settings.forEach(x => s[x.key]=x.value);
 
   // Giam sat IP toan he thong: cac lan vuot link gan day + so tai khoan khac dung chung IP
   const ipMonitor = await db.q(`
     SELECT ta.id, ta.ip_created, ta.fingerprint, ta.status, ta.created_at,
-    u.username, t.name as task_name,
+    u.username, t.name as task_name, t.provider as task_provider,
     (SELECT COUNT(*) FROM ip_user_map WHERE ip=ta.ip_created AND user_id != ta.user_id) as other_accounts,
     (SELECT COUNT(*) FROM fp_user_map WHERE fingerprint=ta.fingerprint AND user_id != ta.user_id AND ta.fingerprint IS NOT NULL AND ta.fingerprint != '') as other_accounts_fp
     FROM task_attempts ta
@@ -65,7 +64,7 @@ router.get('/admin', async (req, res) => {
   `);
   const securityEvents = await db.q('SELECT * FROM security_events ORDER BY created_at DESC LIMIT 100');
 
-  res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, shopCategories, customOrders, settings: s, ipMonitor,
+  res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, shopCategories, settings: s, ipMonitor,
     breakerStatus, breakerLogs, heldAttempts, flaggedUsers, securityEvents,
     error: req.query.error||null, ok: req.query.ok||null });
 });
@@ -165,13 +164,21 @@ router.post('/admin/withdrawals/:id/:action', async (req, res) => {
   if (action==='approve') {
     await db.run("UPDATE withdrawals SET status='approved', processed_at=$1 WHERE id=$2", [Date.now(), id]);
   } else {
+    // VA LOI DA SUA (2026-09, lo hong "rua" Vcoin khoa thanh Ncoin tu do):
+    // truoc day LUON hoan toan bo w.amount ve Ncoin, bat ke phan bi tru luc
+    // tao yeu cau la Ncoin hay Vcoin. Gio hoan LAI DUNG LOAI COIN da tru that
+    // su (w.ncoin_used / w.vcoin_used, luu tu luc tao yeu cau - xem
+    // routes/wallet.js), dam bao Vcoin dang bi khoa 28 ngay khong the "hoa
+    // than" thanh Ncoin tu do chi qua 1 thao tac rut roi tu choi.
     const client = await db.connect();
     try {
       await client.query('BEGIN');
       await client.query("UPDATE withdrawals SET status='rejected', processed_at=$1 WHERE id=$2", [Date.now(), id]);
-      await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [w.amount, w.user_id]);
+      if (w.ncoin_used > 0) await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [w.ncoin_used, w.user_id]);
+      if (w.vcoin_used > 0) await client.query('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [w.vcoin_used, w.user_id]);
       await client.query('COMMIT');
-    } catch(e) { await client.query('ROLLBACK'); } finally { client.release(); }
+    } catch(e) { await client.query('ROLLBACK'); console.error(e); return res.redirect('/admin?error=Lỗi khi hoàn tiền, xem log server#withdrawals'); }
+    finally { client.release(); }
   }
   res.redirect('/admin#withdrawals');
 });
@@ -304,17 +311,38 @@ router.post('/admin/users/:id/delete', async (req, res) => {
   const client = await db.connect();
   try {
     await client.query('BEGIN');
+    // VA LOI DA SUA (2026-09, "xóa tài khoản thất bại âm thầm"): thieu don
+    // dep fp_user_map, custom_orders, referral_monthly (deu co khoa ngoai
+    // NOT NULL toi users) va thieu go tham chieu tu-than "referred_by" (cot
+    // nay trong CHINH bang users tro toi user khac ma nguoi do gioi thieu -
+    // xoa 1 nguoi da tung gioi thieu ai do se vi pham khoa ngoai nay). Truoc
+    // day thieu nhung dong nay khien Postgres TU CHOI DELETE FROM users (con
+    // du lieu tham chieu), ROLLBACK toan bo, nhung code cu van redirect ve
+    // "?ok=1" (thanh cong gia) o duoi cung bat ke catch co chay hay khong ->
+    // admin tuong da xoa nhung tai khoan van con nguyen.
+    await client.query('UPDATE users SET referred_by=NULL WHERE referred_by=$1', [id]);
     await client.query('DELETE FROM task_attempts WHERE user_id=$1', [id]);
     await client.query('DELETE FROM withdrawals WHERE user_id=$1', [id]);
     await client.query('DELETE FROM topups WHERE user_id=$1', [id]);
     await client.query('DELETE FROM orders WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM custom_orders WHERE user_id=$1', [id]);
     await client.query('DELETE FROM transactions WHERE user_id=$1', [id]);
     await client.query('DELETE FROM login_logs WHERE user_id=$1', [id]);
     await client.query('DELETE FROM ip_user_map WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM fp_user_map WHERE user_id=$1', [id]);
     await client.query('DELETE FROM weekly_rankings WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM referral_monthly WHERE user_id=$1', [id]);
+    await client.query('DELETE FROM security_events WHERE user_id=$1', [id]); // khong co khoa ngoai nhung don cho sach lich su
     await client.query('DELETE FROM users WHERE id=$1', [id]);
     await client.query('COMMIT');
-  } catch(e) { await client.query('ROLLBACK'); console.error(e); } finally { client.release(); }
+  } catch(e) {
+    await client.query('ROLLBACK');
+    console.error('Lỗi xóa tài khoản:', e);
+    // VA LOI DA SUA: truoc day loi o day bi NUOT AM THAM (chi console.error
+    // roi van redirect "?ok=1" o cuoi ham) - gio tra loi ro rang cho admin
+    // biet THAT SU that bai, khong con "thanh cong gia" nua.
+    return res.redirect('/admin?error=Xóa thất bại (còn dữ liệu liên quan chưa xử lý hết), xem log server để biết chi tiết#users');
+  } finally { client.release(); }
   res.redirect('/admin?ok=1#users');
 });
 
@@ -403,57 +431,6 @@ router.post('/admin/orders/:id/:action', async (req, res) => {
   }
   res.redirect('/admin#shop');
 });
-
-// DON DAT HANG TUY CHINH
-// admin bao gia mot don dang cho ('pending' -> 'quoted')
-router.post('/admin/custom-orders/:id/quote', async (req, res) => {
-  const { quoted_price, admin_note } = req.body;
-  const price = parseInt(quoted_price);
-  if (!price || price <= 0) return res.redirect('/admin?error=Nhập giá báo hợp lệ');
-  const order = await db.get('SELECT * FROM custom_orders WHERE id=$1', [req.params.id]);
-  if (!order || order.status !== 'pending') return res.redirect('/admin?error=Đơn không ở trạng thái chờ báo giá');
-  await db.run(
-    "UPDATE custom_orders SET status='quoted', quoted_price=$1, admin_note=$2, updated_at=$3 WHERE id=$4",
-    [price, admin_note||'', Date.now(), order.id]
-  );
-  res.redirect('/admin?ok=1#shop');
-});
-// admin huy don khi con chua thanh toan (pending/quoted) - khong can hoan tien vi chua tru
-router.post('/admin/custom-orders/:id/reject', async (req, res) => {
-  const order = await db.get('SELECT * FROM custom_orders WHERE id=$1', [req.params.id]);
-  if (!order) return res.redirect('/admin?error=Đơn không tồn tại');
-  if (!['pending','quoted'].includes(order.status)) return res.redirect('/admin?error=Đơn đã thanh toán, dùng nút Hủy & hoàn tiền');
-  await db.run("UPDATE custom_orders SET status='rejected', updated_at=$1 WHERE id=$2", [Date.now(), order.id]);
-  res.redirect('/admin?ok=1#shop');
-});
-// admin huy don DA THANH TOAN (status='confirmed') va hoan lai coin cho user
-router.post('/admin/custom-orders/:id/refund', async (req, res) => {
-  const client = await db.connect();
-  try {
-    await client.query('BEGIN');
-    const orderLock = await client.query('SELECT * FROM custom_orders WHERE id=$1 FOR UPDATE', [req.params.id]);
-    const order = orderLock.rows[0];
-    if (!order || order.status !== 'confirmed') { await client.query('ROLLBACK'); return res.redirect('/admin?error=Đơn không ở trạng thái đã thanh toán'); }
-    if (order.price_ncoin > 0) await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [order.price_ncoin, order.user_id]);
-    if (order.price_vcoin > 0) await client.query('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [order.price_vcoin, order.user_id]);
-    await client.query("UPDATE custom_orders SET status='rejected', updated_at=$1 WHERE id=$2", [Date.now(), order.id]);
-    await client.query('COMMIT');
-  } catch(e) { await client.query('ROLLBACK'); console.error(e); } finally { client.release(); }
-  res.redirect('/admin?ok=1#shop');
-});
-// admin gui thong tin giao hang (tai khoan/mat khau...) va danh dau da xong
-// (chi khi da thanh toan - 'confirmed')
-router.post('/admin/custom-orders/:id/complete', async (req, res) => {
-  const { delivery_info } = req.body;
-  const order = await db.get('SELECT * FROM custom_orders WHERE id=$1', [req.params.id]);
-  if (!order || order.status !== 'confirmed') return res.redirect('/admin?error=Đơn phải ở trạng thái đã thanh toán mới hoàn tất được');
-  await db.run(
-    "UPDATE custom_orders SET status='completed', delivery_info=$1, updated_at=$2 WHERE id=$3",
-    [delivery_info || '', Date.now(), order.id]
-  );
-  res.redirect('/admin?ok=1#shop');
-});
-
 
 // ANNOUNCEMENTS
 router.post('/admin/announcements', async (req, res) => {

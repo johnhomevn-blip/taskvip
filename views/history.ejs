@@ -23,7 +23,7 @@
           <tr><th>Thời gian</th><th>Loại</th><th>Số lượng</th><th>Mô tả</th></tr>
           <%transactions.forEach(t=>{%>
           <tr>
-            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(t.created_at)).toLocaleString('vi-VN')%></td>
+            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(t.created_at)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
             <td>
               <%if(t.type==='earn'){%><span class="badge badge-success">⚡ Vượt link</span>
               <%}else if(t.type==='earn_pending'){%><span class="badge badge-warning">⏳ Chờ duyệt</span>
@@ -35,7 +35,7 @@
               <%}else{%><span class="badge"><%=t.type%></span><%}%>
             </td>
             <td style="font-weight:600;color:<%=t.type==='earn'||t.type==='topup'||t.type==='referral'?'#10b981':(t.type==='earn_pending'?'#f59e0b':(t.type==='earn_rejected'?'var(--text3)':'#ef4444'))%>">
-              <%=t.type==='earn'||t.type==='topup'||t.type==='referral'?'+':(t.type==='earn_pending'||t.type==='earn_rejected'?'':'-')%><%=t.amount.toLocaleString('vi-VN')%>
+              <%=t.type==='earn'||t.type==='topup'||t.type==='referral'?'+':(t.type==='earn_pending'||t.type==='earn_rejected'?'':'-')%><%=t.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>
               <span style="font-size:11px"><%=t.coin_type==='vcoin'?'V':'N'%></span>
               <%if(t.type==='earn_rejected'){%><span style="font-size:11px;color:var(--text3)"> (không cộng)</span><%}%>
             </td>
@@ -54,7 +54,7 @@
           <tr><th>Thời gian</th><th>Địa chỉ IP</th><th>Thiết bị</th></tr>
           <%loginLogs.forEach(l=>{%>
           <tr>
-            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(l.created_at)).toLocaleString('vi-VN')%></td>
+            <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(l.created_at)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
             <td><span class="ip-badge"><%=l.ip||'—'%></span></td>
             <td style="color:var(--text2);font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%=l.user_agent||'—'%></td>
           </tr>

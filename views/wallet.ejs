@@ -16,18 +16,19 @@
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
   <div style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(124,58,237,0.15));border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:16px">
     <div style="font-size:12px;color:var(--text2)"><span class="ni sm">N</span> Ncoin đổi thưởng</div>
-    <div style="font-size:26px;font-weight:800;color:#f59e0b;display:flex;align-items:center;gap:6px"><span class="ni">N</span><%=user.ncoin.toLocaleString('vi-VN')%></div>
+    <div style="font-size:26px;font-weight:800;color:#f59e0b;display:flex;align-items:center;gap:6px"><span class="ni">N</span><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
   </div>
   <div style="background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(124,58,237,0.15));border:1px solid rgba(96,165,250,0.2);border-radius:14px;padding:16px">
     <div style="font-size:12px;color:var(--text2)"><span class="vi sm">V</span> Vcoin đã mở khóa</div>
-    <div style="font-size:26px;font-weight:800;color:#60a5fa;display:flex;align-items:center;gap:6px"><span class="vi">V</span><%=vcoinUnlocked.toLocaleString('vi-VN')%></div>
-    <div style="font-size:11px;color:var(--text2);margin-top:2px">Tổng Vcoin: <%=user.vcoin.toLocaleString('vi-VN')%>V (chờ 28 ngày để mở)</div>
+    <div style="font-size:26px;font-weight:800;color:#60a5fa;display:flex;align-items:center;gap:6px"><span class="vi">V</span><%=vcoinUnlocked.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+    <div style="font-size:11px;color:var(--text2);margin-top:2px">Tổng Vcoin: <%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>V (chờ 28 ngày để mở)</div>
   </div>
 </div>
 
 <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#f59e0b">
-  💡 Phí rút theo cấp độ hiện tại: <span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:20px;background:<%=tierTag.bg%>;color:#fff;font-weight:600;font-size:12px"><%=tierTag.emoji%> <%=tierLabel%></span> — <b><%=currentFee.toLocaleString('vi-VN')%>đ</b> mỗi lần rút
+  💡 Phí rút theo cấp độ hiện tại: <span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:20px;background:<%=tierTag.bg%>;color:#fff;font-weight:600;font-size:12px"><%=tierTag.emoji%> <%=tierLabel%></span> — <b><%=currentFee.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>đ</b> mỗi lần rút (phí cộng thêm vào số coin bị trừ, bạn vẫn nhận đủ số tiền đã nhập)
   · Ưu tiên trừ Ncoin trước, hết mới trừ Vcoin đã mở khóa
+  · Ví dụ: rút 10.000đ, phí <%=currentFee.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>đ → cần có <b>đủ <%=(10000+currentFee).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</b> trong ví mới rút được
 </div>
 
 <div class="grid2">
@@ -36,8 +37,8 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <form method="POST" action="/wallet/withdraw">
       <!-- Honeypot: nguoi that khong thay field nay (an bang CSS .hp-field), bot tu dong dien form thi se dinh -->
-      <div class="hp-field" aria-hidden="true"><label>Họ và tên đệm</label><input type="text" name="hp_field" tabindex="-1" autocomplete="off"></div>
-      <div class="fg"><label>Số tiền muốn rút (tối thiểu <%=(parseInt(settings.withdraw_min)||20000).toLocaleString('vi-VN')%>đ)</label>
+      <div class="hp-field" aria-hidden="true"><label>Mã xác nhận nội bộ (không dùng)</label><input type="text" name="hp_field" tabindex="-1" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"></div>
+      <div class="fg"><label>Số tiền muốn rút (tối thiểu <%=(parseInt(settings.withdraw_min)||20000).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>đ)</label>
       <input name="amount" type="number" min="<%=settings.withdraw_min||20000%>" placeholder="Nhập số tiền" required></div>
       <div class="fg"><label>Phương thức nhận tiền</label>
       <select name="method" id="method-sel" onchange="toggleDetail(this.value)">
@@ -68,13 +69,13 @@
 <div class="card" style="margin-top:14px">
   <div class="card-title">📋 Lịch sử rút tiền</div>
   <table>
-    <tr><th>Ngày</th><th>Số tiền</th><th>Phí</th><th>Thực nhận</th><th>Phương thức</th><th>Trạng thái</th></tr>
+    <tr><th>Ngày</th><th>Số tiền nhận</th><th>Phí (+)</th><th>Tổng bị trừ</th><th>Phương thức</th><th>Trạng thái</th></tr>
     <%history.forEach(h=>{%>
     <tr>
-      <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN')%></td>
-      <td><span class="coin-wrap"><span class="ni sm">N</span><%=h.amount.toLocaleString('vi-VN')%></span></td>
-      <td style="color:#ef4444;font-size:12px">-<%=(h.fee||0).toLocaleString('vi-VN')%></td>
-      <td style="color:#10b981;font-weight:600"><%=(h.amount-(h.fee||0)).toLocaleString('vi-VN')%>đ</td>
+      <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
+      <td><span class="coin-wrap"><span class="ni sm">N</span><%=h.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span></td>
+      <td style="color:#ef4444;font-size:12px">+<%=(h.fee||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
+      <td style="color:#10b981;font-weight:600"><%=(h.amount+(h.fee||0)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</td>
       <td><%=h.method%></td>
       <td><%if(h.status==='approved'){%><span class="badge badge-success">✅ Duyệt</span><%}else if(h.status==='rejected'){%><span class="badge badge-danger">❌ Từ chối</span><%}else{%><span class="badge badge-warning">⏳ Chờ</span><%}%></td>
     </tr>

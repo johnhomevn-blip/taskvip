@@ -74,7 +74,7 @@ router.get('/verify', async (req, res) => {
   } else if (breakerResult.tripped) {
     holdReason = 'breaker';
   } else {
-    const risk = await fraud.evaluateUserRisk(attempt.user_id, { ip, fingerprint: attempt.fingerprint });
+    const risk = await fraud.evaluateUserRisk(attempt.user_id, { ip, fingerprint: attempt.fingerprint, userAgent: req.headers['user-agent'] });
     if (risk.flagged) {
       holdReason = 'fraud';
     } else {

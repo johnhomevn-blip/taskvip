@@ -12,7 +12,7 @@
     <div class="verify-title" id="vt">Đang xử lý...</div>
     <div class="verify-sub" id="vs">Vui lòng chờ trong giây lát</div>
     <div id="vr" style="display:none">
-      <div class="verify-reward">+<%=reward.toLocaleString('vi-VN')%> Ncoin</div>
+      <div class="verify-reward">+<%=reward.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> Ncoin</div>
       <div style="color:var(--text2);font-size:13px;margin-bottom:20px">Hệ số ×<%=multiplier%></div>
       <%if(targetUrl){%>
       <a href="<%=targetUrl%>" target="_blank" rel="noopener" class="btn btn-primary btn-full" style="margin-bottom:10px">🎁 Nhận Ncoin ngay</a>
@@ -23,7 +23,7 @@
     <div class="verify-icon">⏳</div>
     <div class="verify-title">Đã ghi nhận, đang chờ duyệt</div>
     <div class="verify-sub" style="margin-bottom:14px"><%=message%></div>
-    <div style="color:var(--text2);font-size:13px;margin-bottom:20px">Ncoin dự kiến: <b style="color:#fbbf24"><%=reward.toLocaleString('vi-VN')%></b> (×<%=multiplier%>) — sẽ được cộng sau khi duyệt</div>
+    <div style="color:var(--text2);font-size:13px;margin-bottom:20px">Ncoin dự kiến: <b style="color:#fbbf24"><%=reward.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></b> (×<%=multiplier%>) — sẽ được cộng sau khi duyệt</div>
     <a href="/history" class="btn btn-outline btn-full" style="margin-bottom:10px">📋 Xem trạng thái trong Lịch sử</a>
     <a href="/tasks" class="btn btn-primary btn-full">Về trang nhiệm vụ</a>
     <%}else{%>

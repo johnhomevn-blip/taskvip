@@ -26,8 +26,8 @@
         <%ips.forEach(ip=>{%>
         <tr>
           <td style="font-family:monospace;color:var(--accent2)"><%=ip.ip%></td>
-          <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.first_seen)).toLocaleString('vi-VN')%></td>
-          <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.last_seen)).toLocaleString('vi-VN')%></td>
+          <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.first_seen)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
+          <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.last_seen)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
           <td><%=ip.attempts%></td>
           <td style="color:#10b981"><%=ip.completed%></td>
           <td>

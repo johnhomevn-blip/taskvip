@@ -106,6 +106,8 @@ async function init() {
       status TEXT NOT NULL DEFAULT 'pending',
       note TEXT DEFAULT '',
       fee INTEGER DEFAULT 0,
+      ncoin_used INTEGER NOT NULL DEFAULT 0,
+      vcoin_used INTEGER NOT NULL DEFAULT 0,
       created_at BIGINT NOT NULL,
       processed_at BIGINT
     );
@@ -318,6 +320,23 @@ async function init() {
     -- vao "cho_duyet" de admin tu kiem tra tay truoc khi cong thuong, thay vi
     -- co gang doan IP tot/xau mot cach khong chinh xac.
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_review INTEGER NOT NULL DEFAULT 0;
+    -- VA LOI DA SUA (2026-09, "rua" Vcoin bi khoa thanh Ncoin tu do qua tao
+    -- roi tu choi yeu cau rut tien): truoc day bang nay KHONG luu lai da
+    -- tung tru bao nhieu Ncoin/Vcoin that su luc tao yeu cau rut, nen khi
+    -- admin tu choi, code chi biet hoan LAI TOAN BO ve Ncoin (tu do, rut duoc
+    -- ngay), bat ke phan do goc la Vcoin (dang bi khoa 28 ngay). Ai co Vcoin
+    -- bi khoa chi can rut tien roi tu lam admin tu choi (hoac admin vo tinh
+    -- tu choi giup) la "rua" duoc Vcoin khoa thanh Ncoin tu do ngay lap tuc.
+    ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS ncoin_used INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS vcoin_used INTEGER NOT NULL DEFAULT 0;
+    -- Backfill cho cac yeu cau rut tien CU dang con 'pending' tu truoc khi co
+    -- 2 cot tren (ncoin_used/vcoin_used = 0 mac dinh): gan tam ncoin_used =
+    -- amount, vi code CU (truoc ban va nay) trong thuc te CHUA TUNG THUC SU
+    -- TRU PHI vao vi (chi ghi nhan "fee" de hien thi), nen so tien THAT SU
+    -- da bi tru luc tao yeu cau CU chinh la "amount" (khong phai amount+fee).
+    -- Chi ap dung cho don CON 'pending' - don da 'approved'/'rejected' roi
+    -- thi khong con y nghia gi (khong con hoan tien lai nua).
+    UPDATE withdrawals SET ncoin_used = amount WHERE status = 'pending' AND ncoin_used = 0 AND vcoin_used = 0 AND amount > 0;
     ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_mode TEXT NOT NULL DEFAULT 'manual';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_code TEXT;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_info TEXT DEFAULT '';

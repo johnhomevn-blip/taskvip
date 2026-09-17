@@ -18,8 +18,7 @@ router.get('/shop', async (req, res) => {
     FROM products p WHERE p.active=1 ORDER BY p.id DESC
   `);
   const myOrders = await db.q('SELECT o.*, p.name as pname FROM orders o JOIN products p ON p.id=o.product_id WHERE o.user_id=$1 ORDER BY o.created_at DESC LIMIT 20', [user.id]);
-  const myCustomOrders = await db.q('SELECT * FROM custom_orders WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20', [user.id]);
-  res.render('shop', { user, categories, products, myOrders, myCustomOrders, error: req.query.error||null, ok: req.query.ok||null });
+  res.render('shop', { user, categories, products, myOrders, error: req.query.error||null, ok: req.query.ok||null });
 });
 
 router.post('/shop/:id/buy', async (req, res) => {
@@ -135,74 +134,13 @@ router.post('/shop/:id/buy', async (req, res) => {
 });
 
 // ===== DON DAT HANG TUY CHINH =====
-// Khac voi mua san pham co san: user mo ta thu ho muon (khong co gia san),
-// admin bao gia (quoted), user dong y & thanh toan (confirmed, tru coin luc
-// nay), admin gui tai khoan/mat khau lai (delivery_info) roi danh dau
-// completed. User co the huy don khi con chua thanh toan (pending/quoted)
-// ma khong mat gi vi chua tru coin.
-
-router.post('/shop/custom', async (req, res) => {
-  const { title, details } = req.body;
-  if (!title || !title.trim()) return res.redirect('/shop?error=Vui lòng nhập tên/mô tả thứ bạn muốn đặt');
-  const orderCode = await generateOrderCode();
-  await db.run(
-    `INSERT INTO custom_orders (user_id,order_code,title,details,status,created_at,updated_at) VALUES ($1,$2,$3,$4,'pending',$5,$5)`,
-    [req.user.id, orderCode, title.trim(), (details||'').trim(), Date.now()]
-  );
-  res.redirect('/shop?ok=1#custom');
-});
-
-router.post('/shop/custom/:id/cancel', async (req, res) => {
-  const order = await db.get('SELECT * FROM custom_orders WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
-  if (!order) return res.redirect('/shop?error=Đơn không tồn tại');
-  if (!['pending','quoted'].includes(order.status)) return res.redirect('/shop?error=Đơn này không thể hủy');
-  await db.run("UPDATE custom_orders SET status='cancelled', updated_at=$1 WHERE id=$2", [Date.now(), order.id]);
-  res.redirect('/shop?ok=1#custom');
-});
-
-router.post('/shop/custom/:id/confirm', async (req, res) => {
-  const user = req.user;
-  const client = await db.connect();
-  try {
-    await client.query('BEGIN');
-    const orderLock = await client.query(
-      `SELECT * FROM custom_orders WHERE id=$1 AND user_id=$2 FOR UPDATE`,
-      [req.params.id, user.id]
-    );
-    const order = orderLock.rows[0];
-    if (!order) { await client.query('ROLLBACK'); return res.redirect('/shop?error=Đơn không tồn tại'); }
-    if (order.status !== 'quoted') { await client.query('ROLLBACK'); return res.redirect('/shop?error=Đơn này chưa được báo giá hoặc đã xử lý'); }
-
-    const userLock = await client.query('SELECT ncoin, vcoin FROM users WHERE id=$1 FOR UPDATE', [user.id]);
-    const freshUser = userLock.rows[0];
-    const price = order.quoted_price || 0;
-    const totalAvailable = freshUser.ncoin + freshUser.vcoin;
-    if (price > totalAvailable) {
-      await client.query('ROLLBACK');
-      return res.redirect('/shop?error=Không đủ coin để xác nhận đơn này');
-    }
-    const deductNcoin = Math.min(freshUser.ncoin, price);
-    const deductVcoin = price - deductNcoin;
-    if (deductNcoin > 0) {
-      const r1 = await client.query('UPDATE users SET ncoin=ncoin-$1 WHERE id=$2 AND ncoin>=$1', [deductNcoin, user.id]);
-      if (r1.rowCount === 0) throw new Error('Không đủ Ncoin (race condition đã bị chặn)');
-    }
-    if (deductVcoin > 0) {
-      const r2 = await client.query('UPDATE users SET vcoin=vcoin-$1 WHERE id=$2 AND vcoin>=$1', [deductVcoin, user.id]);
-      if (r2.rowCount === 0) throw new Error('Không đủ Vcoin (race condition đã bị chặn)');
-    }
-    await client.query(
-      `UPDATE custom_orders SET status='confirmed', price_ncoin=$1, price_vcoin=$2, updated_at=$3 WHERE id=$4`,
-      [deductNcoin, deductVcoin, Date.now(), order.id]
-    );
-    await client.query(
-      `INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'buy',$2,'ncoin',$3,$4)`,
-      [user.id, price, `Đặt hàng tùy chỉnh: ${order.title} (mã ${order.order_code})`, Date.now()]
-    );
-    await client.query('COMMIT');
-  } catch(e) { await client.query('ROLLBACK'); console.error(e); return res.redirect('/shop?error=Lỗi, thử lại'); }
-  finally { client.release(); }
-  res.redirect('/shop?ok=1#custom');
-});
+// ===== DA XOA: "Dat hang tuy chinh" (2026-09) =====
+// Theo yeu cau chu web: tinh nang nay cho phep khach mo ta bat ky thu gi ho
+// muon mua roi admin bao gia rieng - nhung chu web hien khong co nguon hang
+// linh hoat de dap ung kieu don le nay, nen bo hoan toan khoi giao dien +
+// route de tranh khach gui yeu cau ma khong ai xu ly. Bang custom_orders
+// trong DB VAN GIU NGUYEN (khong xoa) de khong mat du lieu lich su cu va vi
+// van con rang buoc khoa ngoai voi bang users (routes/admin.js van xoa dong
+// lien quan khi xoa 1 user, xem ham xoa tai khoan).
 
 module.exports = router;

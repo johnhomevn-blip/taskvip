@@ -21,11 +21,11 @@
         <span class="level-tag" style="background:<%=tag.bg%>;color:#fff;font-size:13px;padding:4px 12px">
           <%=tag.emoji%> Level <%=levelInfo.level%> — <%=tag.label%>
         </span>
-        <span style="font-size:13px;color:var(--text2)">Tổng <%=user.exp.toLocaleString('vi-VN')%> EXP</span>
+        <span style="font-size:13px;color:var(--text2)">Tổng <%=user.exp.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> EXP</span>
       </div>
       <div class="exp-bar-wrap">
         <div class="exp-bar-info">
-          <span><%=levelInfo.expInLevel.toLocaleString('vi-VN')%> / <%=levelInfo.expNeeded>0?levelInfo.expNeeded.toLocaleString('vi-VN'):'MAX'%> EXP</span>
+          <span><%=levelInfo.expInLevel.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> / <%=levelInfo.expNeeded>0?levelInfo.expNeeded.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}):'MAX'%> EXP</span>
           <%if(levelInfo.level<50){%><span>→ Level <%=levelInfo.level+1%></span><%}%>
         </div>
         <div class="exp-bar-track">
@@ -37,12 +37,12 @@
     <div class="grid4" style="margin-bottom:16px">
       <div class="stat-card">
         <div class="stat-label"><span class="ni">N</span> Ncoin</div>
-        <div class="stat-value" style="color:#f59e0b"><%=user.ncoin.toLocaleString('vi-VN')%></div>
+        <div class="stat-value" style="color:#f59e0b"><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub">Rút ra tiền thật</div>
       </div>
       <div class="stat-card">
         <div class="stat-label"><span class="vi">V</span> Vcoin</div>
-        <div class="stat-value" style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN')%></div>
+        <div class="stat-value" style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub">Mua dịch vụ</div>
       </div>
       <div class="stat-card">
@@ -52,8 +52,8 @@
       </div>
       <div class="stat-card">
         <div class="stat-label"><span class="ni sm">N</span> Ncoin tuần</div>
-        <div class="stat-value" style="color:#a78bfa"><%=weekNcoin.toLocaleString('vi-VN')%></div>
-        <div class="stat-sub"><%=monthNcoin.toLocaleString('vi-VN')%> tháng</div>
+        <div class="stat-value" style="color:#a78bfa"><%=weekNcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+        <div class="stat-sub"><%=monthNcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> tháng</div>
       </div>
     </div>
 
@@ -63,7 +63,7 @@
         <%const mx=Math.max(...days.map(d=>d.total),1);%>
         <%days.forEach(d=>{%>
         <div class="chart-col">
-          <div class="chart-bar" style="height:<%=Math.max(3,Math.round(d.total/mx*100))%>%" title="<%=d.date%>: <%=d.total.toLocaleString('vi-VN')%>N"></div>
+          <div class="chart-bar" style="height:<%=Math.max(3,Math.round(d.total/mx*100))%>%" title="<%=d.date%>: <%=d.total.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>N"></div>
           <div class="chart-lbl"><%=d.date%></div>
         </div><%})%>
       </div>

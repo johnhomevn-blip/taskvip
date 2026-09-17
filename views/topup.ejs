@@ -17,7 +17,7 @@
     <div style="background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(124,58,237,0.15));border:1px solid rgba(96,165,250,0.2);border-radius:14px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-size:12px;color:var(--text2)">Vcoin hiện có</div>
-        <div style="font-size:32px;font-weight:800;color:#60a5fa;display:flex;align-items:center;gap:8px"><span class="vi lg">V</span><%=user.vcoin.toLocaleString('vi-VN')%></div>
+        <div style="font-size:32px;font-weight:800;color:#60a5fa;display:flex;align-items:center;gap:8px"><span class="vi lg">V</span><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
       </div>
       <div style="text-align:right;font-size:12px;color:var(--text2)">
         <div>Vcoin nạp vào cần chờ</div>
@@ -51,13 +51,13 @@
           <tr><th>Ngày</th><th>Số lượng</th><th>Rút được sau</th></tr>
           <%history.forEach(h=>{%>
           <tr>
-            <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN')%></td>
-            <td style="color:#60a5fa;font-weight:600">+<%=h.amount.toLocaleString('vi-VN')%>V</td>
+            <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
+            <td style="color:#60a5fa;font-weight:600">+<%=h.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>V</td>
             <td style="font-size:12px">
               <%if(Date.now()>=parseInt(h.withdrawable_at)){%>
               <span style="color:#10b981">✅ Đã mở khóa</span>
               <%}else{%>
-              <span style="color:#f59e0b"><%=new Date(parseInt(h.withdrawable_at)).toLocaleDateString('vi-VN')%></span>
+              <span style="color:#f59e0b"><%=new Date(parseInt(h.withdrawable_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span>
               <%}%>
             </td>
           </tr>

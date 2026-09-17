@@ -48,7 +48,7 @@
             <button class="btn-task" <%=task.remaining<=0?'disabled':''%>><%=task.remaining<=0?'🔒 Hết lượt':'▶ Lấy link vượt'%></button>
           </form>
           <div class="task-footer">
-            <div class="task-stat-item"><div class="tsv"><span class="ni sm">N</span><%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin</div></div>
+            <div class="task-stat-item"><div class="tsv"><span class="ni sm">N</span><%=task.actualReward.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div><div class="tsl">Ncoin</div></div>
             <div class="task-stat-item"><div class="tsv">⭐<%=task.exp_reward%></div><div class="tsl">EXP</div></div>
             <div class="task-stat-item"><div class="tsv"><%=task.remaining%>/<%=task.daily_limit%></div><div class="tsl">Lượt còn</div></div>
           </div>
@@ -68,7 +68,7 @@
           <button class="btn-task" <%=task.remaining<=0?'disabled':''%>><%=task.remaining<=0?'🔒 Hết lượt':'▶ Lấy link vượt'%></button>
         </form>
         <div class="task-footer">
-          <div class="task-stat-item"><div class="tsv"><span class="ni sm">N</span><%=task.actualReward.toLocaleString('vi-VN')%></div><div class="tsl">Ncoin</div></div>
+          <div class="task-stat-item"><div class="tsv"><span class="ni sm">N</span><%=task.actualReward.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div><div class="tsl">Ncoin</div></div>
           <div class="task-stat-item"><div class="tsv">⭐<%=task.exp_reward%></div><div class="tsl">EXP</div></div>
           <div class="task-stat-item"><div class="tsv"><%=task.remaining%>/<%=task.daily_limit%></div><div class="tsl">Lượt còn</div></div>
         </div>
