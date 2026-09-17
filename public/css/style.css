@@ -224,3 +224,12 @@ tr:last-child td{border-bottom:none}
 /* AD SLOTS */
 .ad-slot{display:flex;justify-content:center;margin:16px 0;min-height:20px}
 .ad-banner300{min-height:250px}
+
+/* HONEYPOT (chong bot dien form tu dong) - an voi nguoi that bang CSS thay vi
+   display:none/visibility:hidden don gian, vi mot so bot don gian co kiem tra
+   2 thuoc tinh do truoc khi dien. Dua ra ngoai man hinh + trong suot + khong
+   the focus/tab toi la cach an toan hon. */
+.hp-field{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+
+/* TURNSTILE */
+.turnstile-wrap{margin-bottom:14px;display:flex;justify-content:center}

@@ -17,9 +17,13 @@
       <p style="color:var(--text2);font-size:13px;margin-top:4px">Kiếm tiền online mỗi ngày</p>
     </div>
     <% if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <form method="POST" action="/login">
+      <!-- Honeypot: nguoi that khong thay field nay (an bang CSS .hp-field), bot tu dong dien form thi se dinh -->
+      <div class="hp-field" aria-hidden="true"><label>Họ và tên đệm</label><input type="text" name="hp_field" tabindex="-1" autocomplete="off"></div>
       <div class="fg"><label>Tên đăng nhập</label><input name="username" required placeholder="Nhập tên đăng nhập"></div>
       <div class="fg"><label>Mật khẩu</label><input type="password" name="password" required placeholder="Nhập mật khẩu"></div>
+      <%if(turnstileSiteKey){%><div class="turnstile-wrap"><div class="cf-turnstile" data-sitekey="<%=turnstileSiteKey%>"></div></div><%}%>
       <button class="btn btn-primary btn-full" type="submit">Đăng nhập</button>
     </form>
     <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--text2)">

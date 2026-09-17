@@ -4,6 +4,8 @@ const { getClientIp } = require('../lib/ip');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { getTierFromCount, parseReferralSettings, getMonthStart } = require('../lib/referral');
+const { verifyTurnstile } = require('../lib/turnstile');
+const { logSecurityEvent } = require('../lib/securityLog');
 const router = express.Router();
 
 router.get('/register', (req, res) => res.render('register', { error: null, refCode: req.query.ref || '' }));
@@ -24,6 +26,23 @@ router.post('/register', async (req, res) => {
   const refCodeInput = (req.body.ref || '').trim().toUpperCase();
   const fp = req.body.fingerprint || '';
   const ip = getClientIp(req);
+
+  // HONEYPOT: o rieng dau tien, TRUOC ca validate binh thuong. Field nay an
+  // bang CSS (xem public/css/style.css .hp-field) nen nguoi that khong bao
+  // gio dien - script tu dong dien toan bo form (ke ca field an) thi se dinh.
+  // Tra ve THANH CONG GIA (chuyen huong ve /login nhu the dang ky thanh cong)
+  // thay vi bao loi, de KHONG "day" cho bot biet no bi phat hien va doi cach
+  // tan cong khac - trong khi that ra khong co tai khoan nao duoc tao ca.
+  if (req.body.hp_field) {
+    await logSecurityEvent('honeypot', { ip, detail: 'Điền vào honeypot field ở form đăng ký' });
+    return res.redirect('/login');
+  }
+
+  const turnstileResult = await verifyTurnstile(req.body['cf-turnstile-response'], ip);
+  if (!turnstileResult.success) {
+    return res.render('register', { error: 'Xác minh bảo mật thất bại, vui lòng thử lại.', refCode: refCodeInput });
+  }
+
   if (!username || !password || password.length < 6)
     return res.render('register', { error: 'Tên đăng nhập và mật khẩu tối thiểu 6 ký tự là bắt buộc.', refCode: refCodeInput });
   // VA LOI: truoc day khong gioi han ky tu/do dai username o phia server (chi
@@ -102,6 +121,22 @@ router.get('/login', (req, res) => res.render('login', { error: null }));
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  const ip = getClientIp(req);
+
+  // HONEYPOT: tra ve DUNG THONG BAO LOI giong sai mat khau (khong phai
+  // thanh cong gia nhu o dang ky, vi dang nhap khong tao ra du lieu moi de
+  // "gia lap" thanh cong mot cach an toan) - bot khong the phan biet duoc
+  // day la vi honeypot hay vi sai mat khau that.
+  if (req.body.hp_field) {
+    await logSecurityEvent('honeypot', { ip, detail: 'Điền vào honeypot field ở form đăng nhập' });
+    return res.render('login', { error: 'Sai tên đăng nhập hoặc mật khẩu.' });
+  }
+
+  const turnstileResult = await verifyTurnstile(req.body['cf-turnstile-response'], ip);
+  if (!turnstileResult.success) {
+    return res.render('login', { error: 'Xác minh bảo mật thất bại, vui lòng thử lại.' });
+  }
+
   // VA LOI: dang nhap khong phan biet hoa/thuong, khop voi cach dang ky da chan trung o tren
   const user = await db.get('SELECT * FROM users WHERE LOWER(username) = LOWER($1)', [username]);
   if (!user || !bcrypt.compareSync(password, user.password_hash))
@@ -114,7 +149,7 @@ router.post('/login', async (req, res) => {
   // Ghi nhat ky dang nhap
   await db.run(
     'INSERT INTO login_logs (user_id, ip, user_agent, created_at) VALUES ($1,$2,$3,$4)',
-    [user.id, getClientIp(req), req.headers['user-agent'] || '', Date.now()]
+    [user.id, ip, req.headers['user-agent'] || '', Date.now()]
   );
   // Xoa log cu hon 7 ngay
   await db.run('DELETE FROM login_logs WHERE user_id=$1 AND created_at < $2', [user.id, Date.now() - 7*24*60*60*1000]);

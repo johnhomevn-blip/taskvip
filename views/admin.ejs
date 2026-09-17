@@ -26,6 +26,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
       <button class="tab-btn" onclick="showTab('ranking',this)">🏆 Đua top</button>
       <button class="tab-btn" onclick="showTab('users',this)">👥 Users & IP</button>
       <button class="tab-btn" onclick="showTab('ipmonitor',this)">🕵️ Giám sát IP</button>
+      <button class="tab-btn" onclick="showTab('security',this)">🛡️ Bảo mật</button>
       <button class="tab-btn" onclick="showTab('content',this)">📢 Nội dung</button>
       <button class="tab-btn" onclick="showTab('settings',this)">⚙️ Cài đặt</button>
     </div>
@@ -77,6 +78,9 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <option value="rolling">Reset theo giờ (từ lần vượt gần nhất)</option>
           </select>
           <input name="reset_hours" type="number" placeholder="Số giờ (nếu chọn rolling)" value="24" style="<%=inp%>">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);grid-column:1/-1">
+            <input type="checkbox" name="require_review" style="width:auto"> Nhà cung cấp này yêu cầu IP chất lượng - luôn đưa vào "chờ duyệt" để tự kiểm tra tay, không cộng thưởng tự động
+          </label>
           <button class="btn btn-primary" type="submit" style="grid-column:1/-1">➕ Thêm nhiệm vụ</button>
         </form>
       </div>
@@ -84,7 +88,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
       <div class="card">
         <div class="card-title">📋 Danh sách nhiệm vụ</div>
         <table>
-          <tr><th>Tên</th><th>Danh mục</th><th>NCC</th><th>Thưởng</th><th>Lượt</th><th>IP</th><th>Reset</th><th>Trạng thái</th><th></th></tr>
+          <tr><th>Tên</th><th>Danh mục</th><th>NCC</th><th>Thưởng</th><th>Lượt</th><th>IP</th><th>Reset</th><th>Duyệt tay</th><th>Trạng thái</th><th></th></tr>
           <%tasks.forEach(t=>{%>
           <tr>
             <td><%=t.name%></td>
@@ -93,6 +97,11 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><span class="coin-wrap"><span class="ni sm">N</span><%=t.base_reward.toLocaleString('vi-VN')%></span></td>
             <td><%=t.daily_limit%></td><td><%=t.ip_daily_limit%></td>
             <td style="font-size:11px;color:var(--text2)"><%=t.reset_mode==='rolling'?`${t.reset_hours}h/lần`:'00:00'%></td>
+            <td>
+              <form method="POST" action="/admin/tasks/<%=t.id%>/toggle-review">
+                <button class="btn btn-sm" type="submit" style="<%=t.require_review?'background:rgba(168,85,247,0.15);color:#a855f7':'background:rgba(156,163,175,0.1);color:#9ca3af'%>"><%=t.require_review?'📶 Bật':'Tắt'%></button>
+              </form>
+            </td>
             <td><%if(t.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
             <td style="display:flex;gap:4px">
               <form method="POST" action="/admin/tasks/<%=t.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=t.active?'Tắt':'Bật'%></button></form>
@@ -188,7 +197,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         </form>
       </div>
 
-      <div class="card">
+      <div class="card" style="margin-bottom:12px">
         <div class="card-title">🏆 Buff bảng xếp hạng tuần (không ảnh hưởng ví Ncoin thật, chỉ đẩy thứ hạng)</div>
         <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Dùng để test đua top khi web còn ít user — cộng thẳng vào số liệu tuần hiện tại, không cộng tiền vào ví.</div>
         <form method="POST" action="/admin/buff-ranking" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
@@ -202,6 +211,23 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Ncoin hiển thị trên BXH cộng thêm</label>
           <input name="ncoin_earned_add" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
           <div style="align-self:end"><button class="btn btn-primary btn-full" type="submit">🏆 Buff BXH</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎁 Buff bảng xếp hạng giới thiệu tháng (không ảnh hưởng ví Ncoin thật, chỉ đẩy thứ hạng)</div>
+        <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Tương tự buff BXH tuần ở trên, nhưng cho bảng xếp hạng giới thiệu bạn bè hàng tháng (trang /referral). Số coin hiển thị ở đây KHÔNG cộng vào ví - chỉ để hiển thị trên bảng xếp hạng.</div>
+        <form method="POST" action="/admin/buff-referral" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
+          <input type="text" placeholder="🔍 Gõ để tìm theo tên..." oninput="filterUserSelect(this,'buffSelect3')" style="width:100%;<%=inp%>;margin-bottom:6px">
+          <select name="user_id" id="buffSelect3" style="width:100%;<%=sel%>">
+            <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%></option><%})%>
+          </select></div>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Số người giới thiệu cộng thêm</label>
+          <input name="ref_count_add" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
+          <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Ncoin hoa hồng hiển thị cộng thêm</label>
+          <input name="commission_earned_add" type="number" placeholder="0" value="0" style="width:100%;<%=inp%>"></div>
+          <div style="align-self:end"><button class="btn btn-primary btn-full" type="submit">🎁 Buff BXH giới thiệu</button></div>
         </form>
       </div>
     </div>
@@ -422,6 +448,8 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td>
               <%if(row.status==='completed'){%><span class="badge badge-success">Hoàn thành</span>
               <%}else if(row.status==='expired'){%><span class="badge">Hết hạn</span>
+              <%}else if(row.status==='cho_duyet'){%><span class="badge badge-warning">⏳ Chờ duyệt</span>
+              <%}else if(row.status==='rejected'){%><span class="badge badge-danger">❌ Từ chối</span>
               <%}else{%><span class="badge badge-warning">Đang chờ</span><%}%>
             </td>
             <td>
@@ -439,6 +467,110 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <%})%>
         </table>
         <%if(ipMonitor.length===0){%><div style="text-align:center;padding:20px;color:var(--text2)">Chưa có dữ liệu</div><%}%>
+      </div>
+    </div>
+
+    <!-- BAO MAT -->
+    <div class="tab-panel" id="tab-security">
+      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Cầu dao tạm dừng xác nhận nhiệm vụ khi Ncoin/giờ tăng đột biến, và tự động đưa nhiệm vụ của tài khoản nghi ngờ farm vào hàng chờ duyệt — không tự khóa/chặn ai, admin luôn là người quyết định cuối cùng ở đây.</div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">⚡ Cầu dao Ncoin/giờ</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px">
+          <div>Trạng thái: <%if(breakerStatus.active){%><span class="badge badge-danger">🔴 ĐANG TẠM DỪNG</span><%}else{%><span class="badge badge-success">🟢 Bình thường</span><%}%></div>
+          <div>Ncoin/giờ hiện tại: <b><%=breakerStatus.rollingSum.toLocaleString('vi-VN')%></b> / Ngưỡng: <b><%=breakerStatus.threshold.toLocaleString('vi-VN')%></b></div>
+          <%if(breakerStatus.active){%><div>Dự kiến tự resume: <b><%=new Date(breakerStatus.autoResumeAt).toLocaleString('vi-VN')%></b> (nếu vẫn bất thường sẽ tự trigger lại)</div><%}%>
+        </div>
+
+        <form method="POST" action="/admin/breaker/threshold" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap">
+          <div class="fg" style="margin:0"><label>Ngưỡng Ncoin/giờ</label><input type="number" name="threshold" min="1" value="<%=breakerStatus.threshold%>" style="width:180px"></div>
+          <button class="btn btn-outline" type="submit">💾 Lưu ngưỡng</button>
+        </form>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <%if(breakerStatus.active){%>
+          <form method="POST" action="/admin/breaker/resume" onsubmit="return confirm('Resume cầu dao ngay bây giờ?')"><button class="btn btn-primary" type="submit">▶️ Resume ngay</button></form>
+          <%}else{%>
+          <form method="POST" action="/admin/breaker/trip" onsubmit="return confirm('Tạm dừng xác nhận nhiệm vụ ngay bây giờ?')">
+            <input type="hidden" name="note" value="Tạm dừng khẩn cấp thủ công">
+            <button class="btn btn-outline" type="submit" style="border-color:#ef4444;color:#ef4444">⏸️ Tạm dừng thủ công</button>
+          </form>
+          <%}%>
+        </div>
+
+        <table style="margin-top:14px">
+          <tr><th>Trigger lúc</th><th>Ncoin/giờ</th><th>Ngưỡng</th><th>Resume lúc</th><th>Bởi</th><th>Ghi chú</th></tr>
+          <%breakerLogs.forEach(l=>{%>
+          <tr>
+            <td style="font-size:11px;color:var(--text2)"><%=new Date(parseInt(l.triggered_at)).toLocaleString('vi-VN')%></td>
+            <td><%=l.ncoin_total.toLocaleString('vi-VN')%></td>
+            <td><%=l.threshold.toLocaleString('vi-VN')%></td>
+            <td style="font-size:11px;color:var(--text2)"><%=l.resumed_at?new Date(parseInt(l.resumed_at)).toLocaleString('vi-VN'):'—'%></td>
+            <td style="font-size:12px"><%=l.resumed_by||'—'%></td>
+            <td style="font-size:12px;color:var(--text2)"><%=l.note||''%></td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(breakerLogs.length===0){%><div style="text-align:center;padding:14px;color:var(--text2)">Chưa có lần trigger nào</div><%}%>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">⏳ Nhiệm vụ chờ duyệt (<%=heldAttempts.length%>)</div>
+        <table>
+          <tr><th>Thời gian</th><th>User</th><th>Nhiệm vụ</th><th>Ncoin</th><th>Lý do giữ</th><th>Chi tiết</th><th>Hành động</th></tr>
+          <%heldAttempts.forEach(a=>{%>
+          <tr>
+            <td style="font-size:11px;color:var(--text2)"><%=new Date(parseInt(a.completed_at)).toLocaleString('vi-VN')%></td>
+            <td><b><%=a.username%></b></td>
+            <td style="font-size:12px"><%=a.task_name%></td>
+            <td><%=a.reward_actual.toLocaleString('vi-VN')%></td>
+            <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📶 Cần IP chất lượng</span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
+            <td style="font-size:11px;color:var(--text2);max-width:220px"><%=a.fraud_reason||'—'%></td>
+            <td style="white-space:nowrap">
+              <form method="POST" action="/admin/attempts/<%=a.id%>/approve" style="display:inline"><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" type="submit">✅ Duyệt</button></form>
+              <form method="POST" action="/admin/attempts/<%=a.id%>/reject" style="display:inline" onsubmit="return confirm('Từ chối nhiệm vụ này? Sẽ không cộng Ncoin.')"><button class="btn btn-outline" style="padding:4px 10px;font-size:12px;border-color:#ef4444;color:#ef4444" type="submit">❌ Từ chối</button></form>
+            </td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(heldAttempts.length===0){%><div style="text-align:center;padding:14px;color:var(--text2)">Không có nhiệm vụ nào đang chờ duyệt</div><%}%>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🚩 Tài khoản nghi ngờ đa tài khoản/farm (<%=flaggedUsers.length%>)</div>
+        <table>
+          <tr><th>User</th><th>Điểm rủi ro</th><th>Chi tiết</th><th>IP đăng ký</th><th>Hành động</th></tr>
+          <%flaggedUsers.forEach(u=>{%>
+          <tr>
+            <td><b><%=u.username%></b></td>
+            <td><span class="badge badge-danger"><%=u.fraud_score%></span></td>
+            <td style="font-size:11px;color:var(--text2);max-width:320px"><%=u.fraud_reason%></td>
+            <td><span class="ip-badge"><%=u.reg_ip||'—'%></span></td>
+            <td>
+              <a href="/admin/user/<%=u.id%>/ips" class="btn btn-outline" style="padding:4px 10px;font-size:12px">🕵️ Xem IP</a>
+              <form method="POST" action="/admin/users/<%=u.id%>/clear-fraud-flag" style="display:inline" onsubmit="return confirm('Gỡ cờ nghi ngờ cho tài khoản này? (sẽ tự gắn cờ lại nếu vẫn còn dấu hiệu ở lượt vượt link tiếp theo)')"><button class="btn btn-outline" style="padding:4px 10px;font-size:12px" type="submit">🏳️ Gỡ cờ</button></form>
+            </td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(flaggedUsers.length===0){%><div style="text-align:center;padding:14px;color:var(--text2)">Không có tài khoản nào bị gắn cờ</div><%}%>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 Nhật ký sự kiện bảo mật (100 gần nhất)</div>
+        <table>
+          <tr><th>Thời gian</th><th>Loại</th><th>IP</th><th>User ID</th><th>Chi tiết</th></tr>
+          <%securityEvents.forEach(e=>{%>
+          <tr>
+            <td style="font-size:11px;color:var(--text2)"><%=new Date(parseInt(e.created_at)).toLocaleString('vi-VN')%></td>
+            <td style="font-size:12px"><%=e.event_type%></td>
+            <td><span class="ip-badge"><%=e.ip||'—'%></span></td>
+            <td style="font-size:12px"><%=e.user_id||'—'%></td>
+            <td style="font-size:12px;color:var(--text2)"><%=e.detail%></td>
+          </tr>
+          <%})%>
+        </table>
+        <%if(securityEvents.length===0){%><div style="text-align:center;padding:14px;color:var(--text2)">Chưa có sự kiện nào</div><%}%>
       </div>
     </div>
 

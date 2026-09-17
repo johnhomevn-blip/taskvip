@@ -1,6 +1,9 @@
 const express = require('express');
 const db = require('../db');
 const { getLevelInfo, getLevelTag } = require('../lib/level');
+const { getClientIp } = require('../lib/ip');
+const { verifyTurnstile } = require('../lib/turnstile');
+const { logSecurityEvent } = require('../lib/securityLog');
 const router = express.Router();
 
 // Anh xa ten tier (label tra ve tu getLevelTag) sang key luu trong settings
@@ -43,6 +46,20 @@ router.get('/wallet', async (req, res) => {
 
 router.post('/wallet/withdraw', async (req, res) => {
   const user = req.user;
+  const ip = getClientIp(req);
+
+  // HONEYPOT + Turnstile: rut tien la noi tao gia tri (tien that ra khoi he
+  // thong) nen ap dung ca 2 lop giong dang ky/dang nhap. Honeypot dinh bay
+  // thi tra ve loi chung chung, khong tiet lo ly do that.
+  if (req.body.hp_field) {
+    await logSecurityEvent('honeypot', { ip, userId: user.id, detail: 'Điền vào honeypot field ở form rút tiền' });
+    return res.redirect('/wallet?error=Có lỗi xảy ra, vui lòng thử lại');
+  }
+  const turnstileResult = await verifyTurnstile(req.body['cf-turnstile-response'], ip);
+  if (!turnstileResult.success) {
+    return res.redirect('/wallet?error=Xác minh bảo mật thất bại, vui lòng thử lại');
+  }
+
   const amount = parseInt(req.body.amount, 10);
   const { method, detail } = req.body;
   const settings = await db.q("SELECT * FROM settings WHERE key IN ('withdraw_min','vcoin_lockdays')");

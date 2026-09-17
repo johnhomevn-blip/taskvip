@@ -19,6 +19,13 @@
       <%}%>
       <a href="/tasks" class="btn btn-outline btn-full">Về trang nhiệm vụ</a>
     </div>
+    <%}else if(status==='holding'){%>
+    <div class="verify-icon">⏳</div>
+    <div class="verify-title">Đã ghi nhận, đang chờ duyệt</div>
+    <div class="verify-sub" style="margin-bottom:14px"><%=message%></div>
+    <div style="color:var(--text2);font-size:13px;margin-bottom:20px">Ncoin dự kiến: <b style="color:#fbbf24"><%=reward.toLocaleString('vi-VN')%></b> (×<%=multiplier%>) — sẽ được cộng sau khi duyệt</div>
+    <a href="/history" class="btn btn-outline btn-full" style="margin-bottom:10px">📋 Xem trạng thái trong Lịch sử</a>
+    <a href="/tasks" class="btn btn-primary btn-full">Về trang nhiệm vụ</a>
     <%}else{%>
     <div class="verify-icon">❌</div>
     <div class="verify-title">Có lỗi xảy ra</div>

@@ -26,14 +26,18 @@
             <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(t.created_at)).toLocaleString('vi-VN')%></td>
             <td>
               <%if(t.type==='earn'){%><span class="badge badge-success">⚡ Vượt link</span>
+              <%}else if(t.type==='earn_pending'){%><span class="badge badge-warning">⏳ Chờ duyệt</span>
+              <%}else if(t.type==='earn_rejected'){%><span class="badge badge-danger">❌ Từ chối</span>
               <%}else if(t.type==='withdraw'){%><span class="badge badge-warning">💸 Rút tiền</span>
               <%}else if(t.type==='topup'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">💎 Nạp</span>
               <%}else if(t.type==='buy'){%><span class="badge badge-danger">🛍️ Mua</span>
+              <%}else if(t.type==='referral'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">🤝 Hoa hồng</span>
               <%}else{%><span class="badge"><%=t.type%></span><%}%>
             </td>
-            <td style="font-weight:600;color:<%=t.type==='earn'||t.type==='topup'?'#10b981':'#ef4444'%>">
-              <%=t.type==='earn'||t.type==='topup'?'+':'-'%><%=t.amount.toLocaleString('vi-VN')%>
+            <td style="font-weight:600;color:<%=t.type==='earn'||t.type==='topup'||t.type==='referral'?'#10b981':(t.type==='earn_pending'?'#f59e0b':(t.type==='earn_rejected'?'var(--text3)':'#ef4444'))%>">
+              <%=t.type==='earn'||t.type==='topup'||t.type==='referral'?'+':(t.type==='earn_pending'||t.type==='earn_rejected'?'':'-')%><%=t.amount.toLocaleString('vi-VN')%>
               <span style="font-size:11px"><%=t.coin_type==='vcoin'?'V':'N'%></span>
+              <%if(t.type==='earn_rejected'){%><span style="font-size:11px;color:var(--text3)"> (không cộng)</span><%}%>
             </td>
             <td style="color:var(--text2);font-size:12px"><%=t.description%></td>
           </tr>

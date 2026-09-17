@@ -108,3 +108,49 @@ create-admin.js   → script tạo tài khoản quản trị
 Các phần có thể mở rộng thêm sau: giới hạn theo IP để chống gian lận nâng cao,
 kiểm tra Referer từ nhà cung cấp, cấp độ (Level) mở khoá nhiệm vụ, hệ thống
 mời bạn bè, tích hợp cổng thanh toán tự động cho rút tiền.
+
+---
+
+## Phần 6 — Chống bot/farm coin (thêm 2026-09)
+
+### 1. Cloudflare Turnstile
+Gắn ở Đăng ký, Đăng nhập, Rút tiền. Cần thêm 2 biến vào `.env` (xem
+`.env.example`):
+```
+TURNSTILE_SITE_KEY=...
+TURNSTILE_SECRET_KEY=...
+```
+Nếu để trống, Turnstile **tự động bị tắt** (có cảnh báo trong log server) —
+tiện cho dev/test, nhưng **production bắt buộc phải điền** để có tác dụng bảo vệ thật.
+
+### 2. Honeypot
+1 ô ẩn (`hp_field`) trong form đăng ký/đăng nhập/rút tiền — người thật không
+thấy, bot tự động điền form thì dính. Đăng ký: trả về "thành công giả" (không
+tạo tài khoản thật). Đăng nhập/rút tiền: trả về lỗi giống hệt lỗi bình thường.
+Mọi lần dính đều được ghi vào **Admin > Bảo mật > Nhật ký sự kiện bảo mật**.
+
+### 3. Cầu dao Ncoin/giờ (`lib/breaker.js`)
+Nếu tổng Ncoin cộng thật trong 1 giờ gần nhất vượt ngưỡng bạn đặt (Admin >
+Bảo mật), toàn bộ nhiệm vụ vượt link mới sẽ **tạm thời không cộng coin ngay**
+mà chuyển vào hàng "Chờ duyệt" cho admin xem lại. Tự động resume sau 20 phút
+nếu ổn định, admin cũng có thể bấm Resume ngay hoặc Tạm dừng thủ công bất cứ
+lúc nào. Toàn bộ lịch sử trigger/resume được ghi lại để xem sau, kể cả khi đã
+tự resume.
+
+### 4. Cờ nghi ngờ đa tài khoản/farm (`lib/fraud.js`)
+Chấm điểm dựa trên: IP/thiết bị trùng tài khoản khác, thời gian hoàn thành
+nhiệm vụ đều đến bất thường (dấu hiệu script), nhiều tài khoản đăng ký cùng
+IP trong thời gian ngắn. **Không tự khóa** — chỉ gắn cờ và đưa nhiệm vụ tiếp
+theo của tài khoản đó vào hàng chờ duyệt, admin xem ở Admin > Bảo mật.
+
+Lưu ý quan trọng: phần này **không phát hiện được VPN thật sự** vì không tích
+hợp API kiểm tra IP trả phí (IPQualityScore/IP2Location...) — nếu cần độ
+chính xác cao hơn cho riêng VPN, có thể tích hợp thêm sau, xem ghi chú trong
+`lib/fraud.js`.
+
+### 5. Hàng chờ duyệt & Lịch sử
+Nhiệm vụ bị giữ lại hiện trong Admin > Bảo mật với nút Duyệt / Từ chối. Trong
+mục Lịch sử của người dùng, các nhiệm vụ này hiện trạng thái "⏳ Chờ duyệt"
+ngay lập tức, sau đó tự cập nhật thành "⚡ Vượt link" (nếu admin duyệt) hoặc
+"❌ Từ chối" (nếu admin từ chối) — không bao giờ hiện "Hoàn thành" giả trước
+khi thật sự được duyệt.

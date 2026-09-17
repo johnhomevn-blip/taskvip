@@ -2,8 +2,11 @@ const express = require('express');
 const { getClientIp } = require('../lib/ip');
 const db = require('../db');
 const token = require('../lib/token');
-const { getLevelInfo } = require('../lib/level');
-const { getRateForTier, parseReferralSettings, getMonthStart } = require('../lib/referral');
+const breaker = require('../lib/breaker');
+const fraud = require('../lib/fraud');
+const { checkReferer } = require('../lib/refererCheck');
+const { logSecurityEvent } = require('../lib/securityLog');
+const { creditAttemptReward, insertPendingTransaction } = require('../lib/attemptFlow');
 const router = express.Router();
 
 router.get('/verify', async (req, res) => {
@@ -37,23 +40,71 @@ router.get('/verify', async (req, res) => {
   }
 
   const ip = getClientIp(req);
+
+  // ============================================================
+  // CHONG GIAN LAN (2026-09): truoc khi cong thuong that su, kiem tra 3 lop
+  // phong thu doc lap voi nhau - NEU BAT KY LOP NAO kich hoat, attempt nay se
+  // bi GIU LAI de admin duyet thu cong thay vi cong coin ngay:
+  //   1) Cau dao toan he thong (lib/breaker.js): tong Ncoin/gio dang vuot
+  //      nguong admin dat - bao ve khoi 1 loai tan cong (vd exploit /verify,
+  //      hoac farm quy mo lon) rut can quy thuong RAT NHANH.
+  //   2) Co nghi ngo rieng cho tai khoan nay (lib/fraud.js): nhieu tai khoan
+  //      cung IP/thiet bi, thoi gian hoan thanh qua deu dan (kieu bot),
+  //      hoac hang loat tai khoan dang ky cung luc - bao ve khoi kieu farm
+  //      "nhieu tai khoan nho le" thay vi 1 cu tan cong lon.
+  //   3) Referer khong khop domain nha cung cap (lib/refererCheck.js): dau
+  //      hieu nguoi dung KHONG thuc su di qua trang dem gio/quang cao cua
+  //      nha cung cap ma bypass thang toi /verify (giai ma base64 dan link,
+  //      dung web/tool bypass). Khong chan cung vi 1 so trinh duyet/tien ich
+  //      tu xoa Referer vi ly do rieng tu (xem giai thich chi tiet trong
+  //      lib/refererCheck.js).
+  // Ca 3 deu KHONG tu dong khoa/tu choi gi ca - chi tam giu lai cho admin
+  // xem, dung nguyen tac "phan tich hanh vi, khong chan cung" da thong nhat.
+  // ============================================================
+  const breakerResult = await breaker.evaluateAndTrip(attempt.reward_actual, { ip });
+  let holdReason = null;
+  if (task.require_review) {
+    // Nha cung cap nay yeu cau IP chat luong (kiem tra tay 100%, khong co du
+    // lieu tin cay de tu dong doan IP tot/xau mien phi) - LUON giu lai du
+    // cau dao/co nghi ngo the nao, khong can tinh toan them gi ca.
+    holdReason = 'quality_ip';
+    // Van goi evaluateAndTrip o tren de cau dao van duoc cap nhat dung so
+    // lieu Ncoin/gio thuc te (neu khong goi, cau dao se "khong biet" ve
+    // luong Ncoin cua cac nhiem vu loai nay khi tinh nguong).
+  } else if (breakerResult.tripped) {
+    holdReason = 'breaker';
+  } else {
+    const risk = await fraud.evaluateUserRisk(attempt.user_id, { ip, fingerprint: attempt.fingerprint });
+    if (risk.flagged) {
+      holdReason = 'fraud';
+    } else {
+      const refererResult = await checkReferer(req, task);
+      if (!refererResult.ok) {
+        holdReason = 'referer';
+        await logSecurityEvent('referer_mismatch', {
+          ip, userId: attempt.user_id,
+          detail: `Lượt vượt link #${tid} (${task.name}): ${refererResult.reason}` +
+            (refererResult.expectedHost ? `, mong đợi "${refererResult.expectedHost}"` : '') +
+            (refererResult.refererHost ? `, thực tế "${refererResult.refererHost}"` : ' (Referer trống)'),
+        });
+      }
+    }
+  }
+
   const client = await db.connect();
   try {
     await client.query('BEGIN');
 
-    // VA LOI RACE CONDITION (quan trong nhat): truoc day cau UPDATE nay khong
-    // co dieu kien "AND status='pending'", nen neu nhieu request /verify voi
-    // cung tid+sig duoc goi DONG THOI (vd 1 script goi lai vai chuc lan lien
-    // tuc trong luc transaction dau tien chua kip commit), MOI request deu
-    // doc thay status='pending' (kiem tra o tren, truoc transaction) roi deu
-    // tu cong thuong rieng -> nhan ban phan thuong nhieu lan chi tu 1 lan
-    // vuot link that. Them "AND status='pending'" bien cau UPDATE thanh 1
-    // thao tac nguyen tu duoc Postgres khoa dong (row lock): chi 1 transaction
-    // duy nhat co the doi status tu 'pending' -> 'completed' thanh cong, cac
-    // transaction goi song song sau do se thay rowCount=0 va bi tu choi.
+    const finalStatus = holdReason ? 'cho_duyet' : 'completed';
+    // VA LOI RACE CONDITION (quan trong nhat): dieu kien "AND status='pending'"
+    // bien cau UPDATE nay thanh 1 thao tac nguyen tu duoc Postgres khoa dong
+    // (row lock): chi 1 transaction duy nhat co the doi status tu 'pending'
+    // sang trang thai cuoi (dua vao finalStatus da tinh o tren), cac request
+    // goi song song sau do se thay rowCount=0 va bi tu choi - khong the nhan
+    // ban phan thuong nhieu lan chi tu 1 lan vuot link that.
     const upd = await client.query(
-      "UPDATE task_attempts SET status='completed', completed_at=$1, ip_verified=$2 WHERE id=$3 AND status='pending'",
-      [Date.now(), ip, tid]
+      "UPDATE task_attempts SET status=$1, completed_at=$2, ip_verified=$3, held_reason=$4 WHERE id=$5 AND status='pending'",
+      [finalStatus, Date.now(), ip, holdReason || '', tid]
     );
     if (upd.rowCount === 0) {
       // Da co request khac xu ly xong attempt nay truoc (hoac da het han) -> dung lai, khong cong thuong 2 lan
@@ -61,66 +112,17 @@ router.get('/verify', async (req, res) => {
       return res.render('verify', { status:'error', message:'Nhiệm vụ này đã được xử lý rồi.', reward:0, multiplier:1, targetUrl:null });
     }
 
-    const updUser = await client.query(
-      'UPDATE users SET ncoin=ncoin+$1, exp=exp+$2 WHERE id=$3 RETURNING exp',
-      [attempt.reward_actual, task.exp_reward, attempt.user_id]
-    );
-    const newExp = updUser.rows[0].exp;
-    const { level } = getLevelInfo(newExp);
-    await client.query('UPDATE users SET level=$1 WHERE id=$2', [level, attempt.user_id]);
-
-    // Ghi transaction
-    await client.query(
-      'INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,$2,$3,$4,$5,$6)',
-      [attempt.user_id, 'earn', attempt.reward_actual, 'ncoin', `Vượt link: ${task.name}`, Date.now()]
-    );
-
-    // Cap nhat weekly ranking
-    const weekStart = getWeekStart();
-    await client.query(
-      `INSERT INTO weekly_rankings (user_id,week_start,task_count,ncoin_earned) VALUES ($1,$2,1,$3)
-       ON CONFLICT (user_id,week_start) DO UPDATE SET task_count=weekly_rankings.task_count+1, ncoin_earned=weekly_rankings.ncoin_earned+$3`,
-      [attempt.user_id, weekStart, attempt.reward_actual]
-    );
-
-    // Ghi nhan IP
-    await client.query(
-      `INSERT INTO ip_user_map (ip,user_id,first_seen,last_seen) VALUES ($1,$2,$3,$3)
-       ON CONFLICT (ip,user_id) DO UPDATE SET last_seen=$3`,
-      [ip, attempt.user_id, Date.now()]
-    );
-
-    // HOA HONG GIOI THIEU: neu nguoi vua hoan thanh nhiem vu duoc gioi thieu
-    // boi ai do, trich % Ncoin vua kiem duoc cong cho nguoi gioi thieu, theo
-    // bac hoa hong da duoc MO KHOA VINH VIEN cua ho (referral_tier_locked -
-    // xem lib/referral.js). Hoa hong khong tru vao Ncoin cua nguoi hoan
-    // thanh nhiem vu - day la tien thuong rieng cho nguoi gioi thieu.
-    if (attempt.reward_actual > 0) {
-      const refUserRow = await client.query('SELECT referred_by FROM users WHERE id=$1', [attempt.user_id]);
-      const referredBy = refUserRow.rows[0]?.referred_by;
-      if (referredBy) {
-        const settingsRes = await client.query('SELECT * FROM settings');
-        const rs = parseReferralSettings(settingsRes.rows);
-        if (rs.enabled) {
-          const referrerRow = await client.query('SELECT referral_tier_locked FROM users WHERE id=$1', [referredBy]);
-          const tier = referrerRow.rows[0]?.referral_tier_locked || 1;
-          const rate = getRateForTier(tier, rs);
-          const commission = Math.floor(attempt.reward_actual * rate / 100);
-          if (commission > 0) {
-            await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [commission, referredBy]);
-            await client.query(
-              'INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,$2,$3,$4,$5,$6)',
-              [referredBy, 'referral', commission, 'ncoin', `Hoa hồng giới thiệu (${rate}%) từ 1 lượt vượt link`, Date.now()]
-            );
-            const monthStart = getMonthStart();
-            await client.query(
-              `INSERT INTO referral_monthly (user_id, month_start, ref_count, commission_earned) VALUES ($1,$2,0,$3)
-               ON CONFLICT (user_id, month_start) DO UPDATE SET commission_earned = referral_monthly.commission_earned + $3`,
-              [referredBy, monthStart, commission]
-            );
-          }
-        }
-      }
+    if (holdReason) {
+      const reasonLabel = holdReason === 'breaker'
+        ? 'hệ thống phát hiện biến động Ncoin bất thường toàn hệ thống'
+        : holdReason === 'referer'
+        ? 'chưa xác nhận được bạn đã đi qua trang rút gọn link'
+        : holdReason === 'quality_ip'
+        ? 'nhà cung cấp yêu cầu kiểm tra IP chất lượng trước khi ghi nhận'
+        : 'tài khoản có dấu hiệu cần xác minh thêm';
+      await insertPendingTransaction(client, { attempt, task, reasonLabel });
+    } else {
+      await creditAttemptReward(client, { attempt, task, ip, hasPendingTransactionRow: false, approvedByAdmin: false });
     }
 
     await client.query('COMMIT');
@@ -130,16 +132,15 @@ router.get('/verify', async (req, res) => {
     return res.render('verify', { status:'error', message:'Có lỗi xảy ra, thử lại sau.', reward:0, multiplier:1, targetUrl:null });
   } finally { client.release(); }
 
+  if (holdReason) {
+    return res.render('verify', {
+      status: 'holding',
+      message: 'Đã ghi nhận lượt vượt link của bạn. Do hệ thống phát hiện dấu hiệu bất thường tạm thời, phần thưởng sẽ được cộng sau khi admin kiểm tra (thường trong thời gian ngắn). Bạn có thể xem trạng thái trong mục Lịch sử.',
+      reward: attempt.reward_actual, multiplier: attempt.multiplier, targetUrl: task.target_url,
+    });
+  }
+
   res.render('verify', { status:'success', message:'Hoàn thành!', reward: attempt.reward_actual, multiplier: attempt.multiplier, targetUrl: task.target_url });
 });
-
-function getWeekStart() {
-  const now = new Date();
-  const gmt7 = new Date(now.getTime() + now.getTimezoneOffset()*60000 + 7*3600000);
-  const day = gmt7.getDay();
-  gmt7.setDate(gmt7.getDate() - day + (day===0?-6:1));
-  gmt7.setHours(0,0,0,0);
-  return gmt7.getTime() - 7*3600000;
-}
 
 module.exports = router;

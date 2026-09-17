@@ -41,7 +41,11 @@ router.get('/tasks', async (req, res) => {
   const tasksWithInfo = await Promise.all(tasks.map(async t => {
     const since = getTaskResetSince(t);
     const done = await db.get(
-      `SELECT COUNT(*) as c FROM task_attempts WHERE user_id=$1 AND task_id=$2 AND status='completed' AND created_at>$3`,
+      // VA LOI CHONG GIAN LAN: tinh ca status='cho_duyet' (dang cho admin duyet
+      // vi cau dao/nghi ngo) vao gioi han/ngay, khong chi 'completed'. Neu chi
+      // dem 'completed', 1 user co the tao link moi lien tuc trong luc cho
+      // duyet de "lach" gioi han/ngay - vi cac lan dang cho duyet khong bi tinh.
+      `SELECT COUNT(*) as c FROM task_attempts WHERE user_id=$1 AND task_id=$2 AND status IN ('completed','cho_duyet') AND created_at>$3`,
       [user.id, t.id, since]
     );
     const actualReward = Math.round(t.base_reward * multiplier);
@@ -114,8 +118,10 @@ router.post('/tasks/:id/start', async (req, res) => {
   // Kiem tra gioi han IP theo nhiem vu (cung theo kieu reset rieng cua nhiem vu)
   const resetSince = getTaskResetSince(task);
   const ipToday = await db.get(
+    // Xem giai thich o dong tuong tu phia tren (gioi han theo user) - cung
+    // tinh ca 'cho_duyet' de khong bi lach gioi han/ngay theo IP.
     `SELECT COUNT(*) as c FROM task_attempts
-     WHERE task_id=$1 AND ip_created=$2 AND status='completed' AND created_at>$3`,
+     WHERE task_id=$1 AND ip_created=$2 AND status IN ('completed','cho_duyet') AND created_at>$3`,
     [task.id, ip, resetSince]
   );
   if (parseInt(ipToday.c) >= task.ip_daily_limit) {
@@ -124,7 +130,7 @@ router.post('/tasks/:id/start', async (req, res) => {
 
   // Kiem tra gioi han user
   const userDone = await db.get(
-    `SELECT COUNT(*) as c FROM task_attempts WHERE user_id=$1 AND task_id=$2 AND status='completed' AND created_at>$3`,
+    `SELECT COUNT(*) as c FROM task_attempts WHERE user_id=$1 AND task_id=$2 AND status IN ('completed','cho_duyet') AND created_at>$3`,
     [user.id, task.id, resetSince]
   );
   if (parseInt(userDone.c) >= task.daily_limit) {

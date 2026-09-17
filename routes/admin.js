@@ -1,5 +1,8 @@
 const express = require('express');
 const db = require('../db');
+const breaker = require('../lib/breaker');
+const fraud = require('../lib/fraud');
+const { creditAttemptReward } = require('../lib/attemptFlow');
 const router = express.Router();
 
 // Kiem tra quyen admin - CHI ap dung cho duong dan bat dau bang '/admin'
@@ -44,7 +47,26 @@ router.get('/admin', async (req, res) => {
     ORDER BY ta.created_at DESC LIMIT 100
   `);
 
+  // ===== TAB BAO MAT (chong gian lan) =====
+  const breakerStatus = await breaker.getStatus();
+  const breakerLogs = await db.q('SELECT * FROM breaker_logs ORDER BY triggered_at DESC LIMIT 30');
+  // Nhiem vu dang "cho_duyet" - vi cau dao trigger hoac vi tai khoan bi gan co nghi ngo
+  const heldAttempts = await db.q(`
+    SELECT ta.*, u.username, u.fraud_score, u.fraud_reason, t.name as task_name
+    FROM task_attempts ta
+    JOIN users u ON u.id = ta.user_id
+    JOIN tasks t ON t.id = ta.task_id
+    WHERE ta.status='cho_duyet'
+    ORDER BY ta.completed_at ASC
+  `);
+  const flaggedUsers = await db.q(`
+    SELECT id, username, fraud_score, fraud_reason, reg_ip, created_at
+    FROM users WHERE fraud_flag=1 ORDER BY fraud_score DESC, id DESC LIMIT 100
+  `);
+  const securityEvents = await db.q('SELECT * FROM security_events ORDER BY created_at DESC LIMIT 100');
+
   res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, shopCategories, customOrders, settings: s, ipMonitor,
+    breakerStatus, breakerLogs, heldAttempts, flaggedUsers, securityEvents,
     error: req.query.error||null, ok: req.query.ok||null });
 });
 
@@ -104,18 +126,23 @@ router.post('/admin/categories/:id/delete', async (req, res) => {
 
 // TASKS
 router.post('/admin/tasks', async (req, res) => {
-  const { name, category_id, provider, target_url, base_reward, exp_reward, min_seconds, daily_limit, ip_daily_limit, reset_mode, reset_hours } = req.body;
+  const { name, category_id, provider, target_url, base_reward, exp_reward, min_seconds, daily_limit, ip_daily_limit, reset_mode, reset_hours, require_review } = req.body;
   if (!name||!base_reward) return res.redirect('/admin?error=Thiếu thông tin');
   // URL dich khong bat buoc - mac dinh dua nguoi dung ve trang nhiem vu sau khi hoan thanh
   const finalTargetUrl = (target_url && target_url.trim()) ? target_url.trim() : `${process.env.BASE_URL}/tasks`;
   const finalResetMode = reset_mode === 'rolling' ? 'rolling' : 'daily';
   await db.run(
-    `INSERT INTO tasks (name,category_id,provider,target_url,base_reward,exp_reward,min_seconds,daily_limit,ip_daily_limit,reset_mode,reset_hours,active,created_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1,$12)`,
+    `INSERT INTO tasks (name,category_id,provider,target_url,base_reward,exp_reward,min_seconds,daily_limit,ip_daily_limit,reset_mode,reset_hours,require_review,active,created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,1,$13)`,
     [name, category_id||null, provider||'link4m', finalTargetUrl, parseInt(base_reward),
      parseInt(exp_reward)||1, parseInt(min_seconds)||15, parseInt(daily_limit)||2, parseInt(ip_daily_limit)||2,
-     finalResetMode, parseInt(reset_hours)||24, Date.now()]
+     finalResetMode, parseInt(reset_hours)||24, require_review === 'on' ? 1 : 0, Date.now()]
   );
+  res.redirect('/admin#tasks');
+});
+router.post('/admin/tasks/:id/toggle-review', async (req, res) => {
+  const t = await db.get('SELECT * FROM tasks WHERE id=$1', [req.params.id]);
+  if (t) await db.run('UPDATE tasks SET require_review=$1 WHERE id=$2', [t.require_review?0:1, t.id]);
   res.redirect('/admin#tasks');
 });
 router.post('/admin/tasks/:id/toggle', async (req, res) => {
@@ -197,6 +224,30 @@ router.post('/admin/buff-ranking', async (req, res) => {
     `INSERT INTO weekly_rankings (user_id,week_start,task_count,ncoin_earned) VALUES ($1,$2,$3,$4)
      ON CONFLICT (user_id,week_start) DO UPDATE SET task_count=GREATEST(weekly_rankings.task_count+$3,0), ncoin_earned=GREATEST(weekly_rankings.ncoin_earned+$4,0)`,
     [user_id, weekStart, tc, ne]
+  );
+  res.redirect('/admin?ok=1#buff');
+});
+
+// BUFF BANG XEP HANG GIOI THIEU THANG (cong truc tiep vao referral_monthly,
+// GIONG HET tinh than voi buff-ranking o tren: chi de day thu hang/hien thi,
+// KHONG dung tien that vao vi cua ai ca)
+function getMonthStartForBuff() {
+  const now = new Date();
+  const gmt7 = new Date(now.getTime() + now.getTimezoneOffset()*60000 + 7*3600000);
+  gmt7.setDate(1);
+  gmt7.setHours(0,0,0,0);
+  return gmt7.getTime() - 7*3600000;
+}
+router.post('/admin/buff-referral', async (req, res) => {
+  const { user_id, ref_count_add, commission_earned_add } = req.body;
+  if (!user_id) return res.redirect('/admin?error=Chọn user#buff');
+  const monthStart = getMonthStartForBuff();
+  const rc = parseInt(ref_count_add) || 0;
+  const ce = parseInt(commission_earned_add) || 0;
+  await db.run(
+    `INSERT INTO referral_monthly (user_id,month_start,ref_count,commission_earned) VALUES ($1,$2,$3,$4)
+     ON CONFLICT (user_id,month_start) DO UPDATE SET ref_count=GREATEST(referral_monthly.ref_count+$3,0), commission_earned=GREATEST(referral_monthly.commission_earned+$4,0)`,
+    [user_id, monthStart, rc, ce]
   );
   res.redirect('/admin?ok=1#buff');
 });
@@ -494,6 +545,81 @@ router.post('/admin/reset-ip-data', async (req, res) => {
   await db.run('DELETE FROM ip_user_map');
   await db.run('DELETE FROM fp_user_map');
   res.redirect('/admin?ok=1#users');
+});
+
+// ================================================================
+// TAB BAO MAT: cau dao Ncoin/gio + hang cho duyet + co nghi ngo farm
+// ================================================================
+
+router.post('/admin/breaker/threshold', async (req, res) => {
+  const r = await breaker.setThreshold(req.body.threshold);
+  if (!r.ok) return res.redirect('/admin?error=Ngưỡng không hợp lệ#security');
+  res.redirect('/admin?ok=1#security');
+});
+
+router.post('/admin/breaker/trip', async (req, res) => {
+  await breaker.manualTrip(req.user.username, req.body.note || '');
+  res.redirect('/admin?ok=1#security');
+});
+
+router.post('/admin/breaker/resume', async (req, res) => {
+  await breaker.manualResume(req.user.username);
+  res.redirect('/admin?ok=1#security');
+});
+
+// Duyet 1 nhiem vu dang "cho_duyet" -> cong thuong that su (dung CHUNG logic
+// voi luong /verify binh thuong qua lib/attemptFlow.js, xem giai thich trong
+// file do vi sao lam vay).
+router.post('/admin/attempts/:id/approve', async (req, res) => {
+  const id = req.params.id;
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    // Dieu kien "AND status='cho_duyet'" dam bao khong duyet 2 lan neu admin
+    // lo bam nut nhieu lan / mo 2 tab.
+    const upd = await client.query("UPDATE task_attempts SET status='completed' WHERE id=$1 AND status='cho_duyet' RETURNING *", [id]);
+    if (upd.rowCount === 0) { await client.query('ROLLBACK'); return res.redirect('/admin?error=Nhiệm vụ không ở trạng thái chờ duyệt#security'); }
+    const attempt = upd.rows[0];
+    const task = await client.query('SELECT * FROM tasks WHERE id=$1', [attempt.task_id]).then(r => r.rows[0]);
+    await creditAttemptReward(client, {
+      attempt, task, ip: attempt.ip_verified,
+      hasPendingTransactionRow: true, approvedByAdmin: true,
+    });
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK'); console.error(e);
+    return res.redirect('/admin?error=Lỗi khi duyệt, thử lại sau#security');
+  } finally { client.release(); }
+  res.redirect('/admin?ok=1#security');
+});
+
+// Tu choi 1 nhiem vu dang "cho_duyet" -> KHONG cong thuong, chi cap nhat
+// trang thai va dong giao dich 'earn_pending' tuong ung sang 'earn_rejected'
+// de nguoi dung thay ro trong Lich su.
+router.post('/admin/attempts/:id/reject', async (req, res) => {
+  const id = req.params.id;
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const upd = await client.query("UPDATE task_attempts SET status='rejected' WHERE id=$1 AND status='cho_duyet' RETURNING id, task_id", [id]);
+    if (upd.rowCount === 0) { await client.query('ROLLBACK'); return res.redirect('/admin?error=Nhiệm vụ không ở trạng thái chờ duyệt#security'); }
+    await client.query(
+      "UPDATE transactions SET type='earn_rejected' WHERE ref_attempt_id=$1 AND type='earn_pending'",
+      [id]
+    );
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK'); console.error(e);
+    return res.redirect('/admin?error=Lỗi khi từ chối, thử lại sau#security');
+  } finally { client.release(); }
+  res.redirect('/admin?ok=1#security');
+});
+
+// Go co nghi ngo farm cho 1 user (danh cho truong hop admin da kiem tra thay
+// khong phai gian lan - vd nguoi dung dung chung wifi phong tro voi ban be).
+router.post('/admin/users/:id/clear-fraud-flag', async (req, res) => {
+  await fraud.clearFraudFlag(req.params.id);
+  res.redirect('/admin?ok=1#security');
 });
 
 module.exports = router;

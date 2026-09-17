@@ -60,6 +60,7 @@ async function init() {
       ip_daily_limit INTEGER NOT NULL DEFAULT 2,
       reset_mode TEXT NOT NULL DEFAULT 'daily',
       reset_hours INTEGER NOT NULL DEFAULT 24,
+      require_review INTEGER NOT NULL DEFAULT 0,
       active INTEGER NOT NULL DEFAULT 1,
       created_at BIGINT NOT NULL
     );
@@ -310,6 +311,13 @@ async function init() {
     ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id INTEGER;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reset_mode TEXT NOT NULL DEFAULT 'daily';
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reset_hours INTEGER NOT NULL DEFAULT 24;
+    -- Cho nhiem vu ma nha cung cap yeu cau "IP chat luong" (khong phai proxy/
+    -- datacenter): thay vi tu dong doan IP tot/xau (khong co du lieu tin cay
+    -- de lam dieu do mien phi - xem giai thich trong lib/fraud.js), don gian
+    -- hoa bang 1 cong tac: BAT thi MOI luot vuot cua nhiem vu nay LUON di
+    -- vao "cho_duyet" de admin tu kiem tra tay truoc khi cong thuong, thay vi
+    -- co gang doan IP tot/xau mot cach khong chinh xac.
+    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS require_review INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE products ADD COLUMN IF NOT EXISTS delivery_mode TEXT NOT NULL DEFAULT 'manual';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_code TEXT;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_info TEXT DEFAULT '';
@@ -468,6 +476,72 @@ async function init() {
     console.warn('[CANH BAO] Co the da ton tai 2 tai khoan trung ten chi khac hoa/thuong tu truoc. Chi tiet loi:', e.message);
     console.warn('[CANH BAO] He thong van hoat dong binh thuong, nhung nen tim va xu ly (doi ten/khoa bot) cac tai khoan trung nay.');
   }
+
+  // ================================================================
+  // CHONG GIAN LAN (2026-09): cau dao Ncoin/gio + hang cho duyet thu
+  // cong + co ro nghi ngo da tai khoan/farm. Xem lib/breaker.js,
+  // lib/fraud.js, lib/attemptFlow.js va routes/verify.js de biet cach
+  // dung. Tat ca đều CONG THEM vao schema cu, khong doi hanh vi cac
+  // cot/bang da co.
+  // ================================================================
+  await pool.query(`
+    -- Cau dao: nguong Ncoin/gio (admin chinh trong Admin > Bao mat),
+    -- trang thai dang bat/tat, va thoi diem trigger gan nhat (de tinh
+    -- cooldown tu dong resume). Gia tri mac dinh chi la khoi diem, admin
+    -- BAT BUOC phai vao chinh lai cho phu hop quy mo thuc te cua site.
+    INSERT INTO settings VALUES ('breaker_hourly_threshold','1000000') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('breaker_active','0') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('breaker_tripped_at','0') ON CONFLICT DO NOTHING;
+
+    -- Nhat ky moi lan cau dao trigger/resume, de admin xem lai lich su
+    -- (thoi diem, so lieu vuot nguong, ai/cai gi resume) du da tu dong
+    -- resume roi.
+    CREATE TABLE IF NOT EXISTS breaker_logs (
+      id SERIAL PRIMARY KEY,
+      triggered_at BIGINT NOT NULL,
+      ncoin_total INTEGER NOT NULL,
+      threshold INTEGER NOT NULL,
+      resumed_at BIGINT,
+      resumed_by TEXT,
+      note TEXT DEFAULT '',
+      created_at BIGINT NOT NULL
+    );
+
+    -- Nhat ky su kien bao mat chung (honeypot dinh bay, v.v.) de admin
+    -- xem lai, khong lam sap ca he thong neu 1 loai su kien nao đó bi
+    -- ghi lai qua nhieu (chi la 1 bang log don gian).
+    CREATE TABLE IF NOT EXISTS security_events (
+      id SERIAL PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      ip TEXT DEFAULT '',
+      user_id INTEGER,
+      detail TEXT DEFAULT '',
+      created_at BIGINT NOT NULL
+    );
+
+    -- Diem/co nghi ngo da tai khoan-farm cho tung user (xem lib/fraud.js).
+    -- fraud_flag=1 nghia la lan vuot link tiep theo cua user nay se bi
+    -- dua vao hang "cho duyet" thay vi cong coin ngay, KHONG tu dong khoa
+    -- tai khoan hay chan thao tac gi khac.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS fraud_flag INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS fraud_score INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS fraud_reason TEXT DEFAULT '';
+
+    -- Lien ket 1 dong transactions voi task_attempts.id ma no dai dien,
+    -- de khi admin duyet/tu choi 1 nhiem vu dang "cho_duyet", ta CAP NHAT
+    -- LAI dung dong nay (tu earn_pending -> earn hoac earn_rejected) thay
+    -- vi phai doan hoac tao dong moi - giu lich su giao dich nhat quan.
+    ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ref_attempt_id INTEGER;
+
+    -- Ly do 1 attempt bi giu lai cho duyet (vd 'breaker' hoac 'fraud'),
+    -- hien thi cho admin trong hang cho duyet de biet vi sao ma khong
+    -- can doan lai tu dau.
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS held_reason TEXT DEFAULT '';
+
+    CREATE INDEX IF NOT EXISTS idx_transactions_type_created ON transactions (type, created_at);
+    CREATE INDEX IF NOT EXISTS idx_task_attempts_status ON task_attempts (status);
+    CREATE INDEX IF NOT EXISTS idx_transactions_ref_attempt ON transactions (ref_attempt_id);
+  `);
 
   console.log('Database san sang');
 }

@@ -17,10 +17,56 @@ const { getClientIp } = require('./lib/ip');
 
 const app = express();
 app.set('trust proxy', 1); // Railway dung reverse proxy, can cai nay de doc dung IP that cua user
+
+// VA LOI DA SUA (2026-09, "IP đăng ký toàn hiện 1 IP"): ban dang chay QUA 2
+// LOP trung gian chong len nhau - Cloudflare (proxy DNS/SSL) ROI MOI toi
+// Railway (co reverse proxy rieng cua no). "trust proxy: 1" o tren CHI tin 1
+// lop duy nhat, nen req.ip tinh ra thuc chat la IP CUA CLOUDFLARE (hoac cua
+// Railway) - GIONG HET NHAU cho MOI nguoi dung that di qua, khong con la IP
+// that cua tung nguoi nua. Day chinh la ly do ban thay "user khac nhau ma
+// toan hien 1 IP".
+//
+// Cach sua DUNG khong phai la doan so tang "trust proxy" len 2 (so lop that
+// su co the thay doi tuy Railway, doan sai van sai) - ma la CHUYEN HAN sang
+// doc header "CF-Connecting-IP" ma CHINH CLOUDFLARE gan vao (khong phai
+// client tu dat), vi day la nguon dang tin nhat khi da dung Cloudflare. Xem
+// lib/ip.js de biet chi tiet + cach BAT tinh nang nay (TRUST_CF_HEADER=1).
+//
+// NHUNG chi bat TRUST_CF_HEADER=1 thoi la CHUA DU AN TOAN: neu domain goc
+// tren Railway (dang *.up.railway.app) van truy cap truc tiep duoc (khong
+// qua Cloudflare), ai do co the vao thang domain do va TU DAT header
+// "CF-Connecting-IP" thanh bat ky gia tri gia mao nao ho muon, vi luc nay
+// khong co Cloudflare o giua de ghi de header that vao. De dong lo hong nay,
+// middleware duoi day CHUYEN HUONG moi request khong den tu domain chinh
+// thuc (CANONICAL_HOST) sang domain chinh thuc - dam bao MOI request thuc su
+// duoc xu ly deu da di qua Cloudflare that su truoc do (Cloudflare se tu ghi
+// de header CF-Connecting-IP dung, xoa moi gia tri gia mao truoc do).
+//
+// CACH BAT: dat 2 bien moi truong tren Railway:
+//   CANONICAL_HOST=4ummo.com  (hoac www.4ummo.com, dung dung ten mien that ban dang dung qua Cloudflare)
+//   TRUST_CF_HEADER=1
+// Neu KHONG dat CANONICAL_HOST, middleware nay se tu bo qua (khong lam gi ca)
+// de khong lam hong moi truong dev/test cuc bo (localhost).
+if (process.env.CANONICAL_HOST) {
+  app.use((req, res, next) => {
+    const host = (req.headers.host || '').split(':')[0].toLowerCase();
+    if (host !== process.env.CANONICAL_HOST.toLowerCase()) {
+      return res.redirect(301, `https://${process.env.CANONICAL_HOST}${req.originalUrl}`);
+    }
+    next();
+  });
+}
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Site key Turnstile la du lieu CONG KHAI (khac voi secret key - secret key
+// KHONG BAO GIO duoc dua ra views, chi dung o phia server trong lib/turnstile.js).
+// Dat lam app.locals de MOI view EJS deu tu dong co bien turnstileSiteKey ma
+// khong can tung route phai truyen rieng.
+app.locals.turnstileSiteKey = process.env.TURNSTILE_SITE_KEY || '';
 
 // VA LOI BAO MAT: truoc day neu thieu SESSION_SECRET, server dung 1 chuoi
 // co dinh ('taskvip-secret-2026') ghi thang trong source. Ai doc duoc source
@@ -208,3 +254,12 @@ setInterval(() => checkAndDistributeAllRewards(), 15 * 60 * 1000);
 const { purgeOldDeliveryInfo } = require('./lib/cleanupCron');
 setTimeout(() => purgeOldDeliveryInfo(), 30 * 1000);
 setInterval(() => purgeOldDeliveryInfo(), 6 * 60 * 60 * 1000);
+
+// Cau dao (circuit breaker) chong dot bien Ncoin/gio - xem lib/breaker.js.
+// Viec TRIGGER cau dao xay ra NGAY LAP TUC trong routes/verify.js (khong cho
+// cron), cron nay CHI lo phan tu dong resume sau cooldown (va tu trigger lai
+// neu bat thuong van tiep dien) - nen chay thuong xuyen (moi 1 phut) de
+// khong lam nguoi dung/admin phai cho lau hon can thiet sau khi da on dinh.
+const breakerLib = require('./lib/breaker');
+setTimeout(() => breakerLib.tryAutoResume().catch(e => console.error('[CẦU DAO] Lỗi cron:', e)), 15 * 1000);
+setInterval(() => breakerLib.tryAutoResume().catch(e => console.error('[CẦU DAO] Lỗi cron:', e)), 60 * 1000);
