@@ -68,6 +68,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // khong can tung route phai truyen rieng.
 app.locals.turnstileSiteKey = process.env.TURNSTILE_SITE_KEY || '';
 
+// "Cache busting" cho CSS/JS tinh (public/css/*.css, public/js/*.js): moi
+// view gan ?v=<assetVersion> vao sau ten file (vd /css/style.css?v=173...),
+// de trinh duyet VA Cloudflare coi day la 1 URL HOAN TOAN MOI moi lan
+// server khoi dong lai (deploy moi) - buoc phai tai lai file that, khong
+// con dung ban cache cu.
+//
+// VA LOI DA SUA (2026-09, "bấm ctrl shift+R là nó mất cái ô đó"): truoc day
+// KHONG co co che nay - moi lan sua CSS/JS va deploy, Cloudflare/trinh duyet
+// van tiep tuc phuc vu ban CACHE CU cho nguoi dung that (ho khong biet de tu
+// bam hard refresh nhu luc debug), khien thay doi giao dien khong len duoc
+// cho ai ca cho toi khi cache tu het han hoac ai do vo tinh xoa cache.
+// RAILWAY_DEPLOYMENT_ID la bien Railway tu dong cung cap moi lan deploy
+// (doi moi lien tuc); fallback ve gio khoi dong server neu chay o moi
+// truong khac Railway (vd may local).
+app.locals.assetVersion = process.env.RAILWAY_DEPLOYMENT_ID || String(Date.now());
+
 // VA LOI BAO MAT: truoc day neu thieu SESSION_SECRET, server dung 1 chuoi
 // co dinh ('taskvip-secret-2026') ghi thang trong source. Ai doc duoc source
 // deu co the tu tao/gia mao cookie session (vd gia mao userId cua admin).
