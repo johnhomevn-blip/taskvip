@@ -32,10 +32,13 @@
               <%}else if(t.type==='topup'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">💎 Nạp</span>
               <%}else if(t.type==='buy'){%><span class="badge badge-danger">🛍️ Mua</span>
               <%}else if(t.type==='referral'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">🤝 Hoa hồng</span>
+              <%}else if(t.type==='reward'){%><span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">🏆 Thưởng BXH</span>
+              <%}else if(t.type==='refund'){%><span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981">↩️ Hoàn tiền</span>
               <%}else{%><span class="badge"><%=t.type%></span><%}%>
             </td>
-            <td style="font-weight:600;color:<%=t.type==='earn'||t.type==='topup'||t.type==='referral'?'#10b981':(t.type==='earn_pending'?'#f59e0b':(t.type==='earn_rejected'?'var(--text3)':'#ef4444'))%>">
-              <%=t.type==='earn'||t.type==='topup'||t.type==='referral'?'+':(t.type==='earn_pending'||t.type==='earn_rejected'?'':'-')%><%=t.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>
+            <% const positiveTypes = ['earn','topup','referral','reward','refund']; %>
+            <td style="font-weight:600;color:<%=positiveTypes.includes(t.type)?'#10b981':(t.type==='earn_pending'?'#f59e0b':(t.type==='earn_rejected'?'var(--text3)':'#ef4444'))%>">
+              <%=positiveTypes.includes(t.type)?'+':(t.type==='earn_pending'||t.type==='earn_rejected'?'':'-')%><%=t.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>
               <span style="font-size:11px"><%=t.coin_type==='vcoin'?'V':'N'%></span>
               <%if(t.type==='earn_rejected'){%><span style="font-size:11px;color:var(--text3)"> (không cộng)</span><%}%>
             </td>

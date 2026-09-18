@@ -11,6 +11,12 @@ router.get('/referral', async (req, res) => {
   const settingsRows = await db.q('SELECT * FROM settings');
   const rs = parseReferralSettings(settingsRows);
 
+  // Setting rieng de bat/tat BANG XEP HANG gioi thieu (doc lap voi rs.enabled
+  // - cai do tat toan bo he thong hoa hong %). Tat rieng muc nay van cho hoa
+  // hong % chay binh thuong, chi an di leaderboard + ngung tra thuong Top 1/2/3.
+  const rankingSettingRow = await db.get("SELECT value FROM settings WHERE key='referral_ranking_enabled'");
+  const rankingEnabled = rankingSettingRow?.value !== '0';
+
   const monthStart = getMonthStart();
   const nextMonthStart = getNextMonthStart(monthStart);
   const secondsLeft = Math.max(0, Math.floor((nextMonthStart - Date.now()) / 1000));
@@ -40,13 +46,13 @@ router.get('/referral', async (req, res) => {
     [user.id]
   );
 
-  const leaderboard = rs.enabled ? await db.q(
+  const leaderboard = rankingEnabled ? await db.q(
     `SELECT rm.*, u.username FROM referral_monthly rm JOIN users u ON u.id=rm.user_id
      WHERE rm.month_start=$1 ORDER BY rm.ref_count DESC, rm.commission_earned DESC LIMIT 10`,
     [monthStart]
   ) : [];
 
-  const myRankRow = rs.enabled ? await db.get(
+  const myRankRow = rankingEnabled ? await db.get(
     `SELECT COUNT(*)+1 as rank FROM referral_monthly WHERE month_start=$1 AND ref_count>(SELECT COALESCE(ref_count,0) FROM referral_monthly WHERE user_id=$2 AND month_start=$1)`,
     [monthStart, user.id]
   ) : null;
@@ -64,6 +70,7 @@ router.get('/referral', async (req, res) => {
     myRank: parseInt(myRankRow?.rank || 0),
     secondsLeft,
     enabled: rs.enabled,
+    rankingEnabled,
     rewards: { r1: rs.reward1, r2: rs.reward2, r3: rs.reward3 },
     thresholds: { t2: rs.threshold2, t3: rs.threshold3 },
     rates: { r1: rs.rate1, r2: rs.rate2, r3: rs.rate3 },

@@ -183,7 +183,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <div class="card-title">🎁 Điều chỉnh coin (nhập số âm để trừ, ví dụ -5000)</div>
         <form method="POST" action="/admin/buff" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
-          <input type="text" placeholder="🔍 Gõ để tìm theo tên..." oninput="filterUserSelect(this,'buffSelect1')" style="width:100%;<%=inp%>;margin-bottom:6px">
+          <input type="text" placeholder="🔍 Gõ để tìm theo tên (tìm trên toàn bộ user, không giới hạn 100)..." oninput="searchUserSelect(this,'buffSelect1')" style="width:100%;<%=inp%>;margin-bottom:6px">
           <select name="user_id" id="buffSelect1" style="width:100%;<%=sel%>">
             <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%> (<%=u.ncoin%>N/<%=u.vcoin%>V)</option><%})%>
           </select></div>
@@ -202,7 +202,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Dùng để test đua top khi web còn ít user — cộng thẳng vào số liệu tuần hiện tại, không cộng tiền vào ví.</div>
         <form method="POST" action="/admin/buff-ranking" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
-          <input type="text" placeholder="🔍 Gõ để tìm theo tên..." oninput="filterUserSelect(this,'buffSelect2')" style="width:100%;<%=inp%>;margin-bottom:6px">
+          <input type="text" placeholder="🔍 Gõ để tìm theo tên (tìm trên toàn bộ user, không giới hạn 100)..." oninput="searchUserSelect(this,'buffSelect2')" style="width:100%;<%=inp%>;margin-bottom:6px">
           <select name="user_id" id="buffSelect2" style="width:100%;<%=sel%>">
             <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%></option><%})%>
           </select></div>
@@ -219,7 +219,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Tương tự buff BXH tuần ở trên, nhưng cho bảng xếp hạng giới thiệu bạn bè hàng tháng (trang /referral). Số coin hiển thị ở đây KHÔNG cộng vào ví - chỉ để hiển thị trên bảng xếp hạng.</div>
         <form method="POST" action="/admin/buff-referral" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
           <div><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Chọn user</label>
-          <input type="text" placeholder="🔍 Gõ để tìm theo tên..." oninput="filterUserSelect(this,'buffSelect3')" style="width:100%;<%=inp%>;margin-bottom:6px">
+          <input type="text" placeholder="🔍 Gõ để tìm theo tên (tìm trên toàn bộ user, không giới hạn 100)..." oninput="searchUserSelect(this,'buffSelect3')" style="width:100%;<%=inp%>;margin-bottom:6px">
           <select name="user_id" id="buffSelect3" style="width:100%;<%=sel%>">
             <%users.forEach(u=>{%><option value="<%=u.id%>"><%=u.username%></option><%})%>
           </select></div>
@@ -322,6 +322,18 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
               <button class="btn btn-sm btn-success" type="submit">➕ Thêm vào kho</button>
             </form>
           </td></tr>
+          <%}else{%>
+          <!-- VA LOI DA SUA (2026-09): route /admin/products/:id/restock da co san
+               o backend nhung TRUOC DAY KHONG CO form/nut nao goi toi no ca - nghia
+               la san pham "giao thu cong" chi dat duoc so luong kho 1 LAN DUY NHAT
+               luc tao, het hang la KHONG CO CACH NAO cap nhat lai qua giao dien. -->
+          <tr><td colspan="7" style="background:rgba(255,255,255,0.02)">
+            <form method="POST" action="/admin/products/<%=p.id%>/restock" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0">
+              <span style="font-size:12px;color:var(--text2)">Cập nhật số lượng kho (-1 = không giới hạn):</span>
+              <input name="stock" type="number" placeholder="Số lượng mới" value="<%=p.stock%>" style="width:120px;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text)">
+              <button class="btn btn-sm btn-success" type="submit">💾 Cập nhật kho</button>
+            </form>
+          </td></tr>
           <%}%>
           <%})%>
         </table>
@@ -337,11 +349,32 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <div class="fg"><label>Phần thưởng hạng 1 (đ)</label><input name="weekly_reward_1" type="number" value="<%=settings.weekly_reward_1||50000%>"></div>
           <div class="fg"><label>Phần thưởng hạng 2 (đ)</label><input name="weekly_reward_2" type="number" value="<%=settings.weekly_reward_2||30000%>"></div>
           <div class="fg"><label>Phần thưởng hạng 3 (đ)</label><input name="weekly_reward_3" type="number" value="<%=settings.weekly_reward_3||20000%>"></div>
-          <div class="fg"><label>Bật/tắt đua top</label>
+          <div class="fg"><label>Bật/tắt đua top (BXH tuần nhiệm vụ)</label>
             <select name="ranking_enabled">
               <option value="1" <%=settings.ranking_enabled==='1'?'selected':''%>>Bật</option>
               <option value="0" <%=settings.ranking_enabled!=='1'?'selected':''%>>Tắt</option>
             </select>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px">Tắt: ẩn trang BXH tuần và KHÔNG tự động trao thưởng Top 1/2/3 cho tuần đó nữa (không dồn thưởng khi bật lại).</div>
+          </div>
+          <button class="btn btn-primary" type="submit">💾 Lưu</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-title">🤝 Cài đặt giới thiệu bạn bè</div>
+        <form method="POST" action="/admin/settings">
+          <div class="fg"><label>Bật/tắt hoa hồng giới thiệu (toàn bộ %)</label>
+            <select name="referral_enabled">
+              <option value="1" <%=settings.referral_enabled!=='0'?'selected':''%>>Bật</option>
+              <option value="0" <%=settings.referral_enabled==='0'?'selected':''%>>Tắt</option>
+            </select>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px">Tắt: dừng cộng hoa hồng % cho người giới thiệu ở mọi bậc.</div>
+          </div>
+          <div class="fg"><label>Bật/tắt bảng xếp hạng giới thiệu tháng</label>
+            <select name="referral_ranking_enabled">
+              <option value="1" <%=settings.referral_ranking_enabled!=='0'?'selected':''%>>Bật</option>
+              <option value="0" <%=settings.referral_ranking_enabled==='0'?'selected':''%>>Tắt</option>
+            </select>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px">Tắt riêng mục này: ẩn BXH giới thiệu + ngừng thưởng Top 1/2/3 hàng tháng, nhưng hoa hồng % (mục trên) vẫn chạy bình thường nếu đang bật. Không dồn thưởng khi bật lại.</div>
           </div>
           <button class="btn btn-primary" type="submit">💾 Lưu</button>
         </form>
@@ -636,16 +669,35 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
   </div>
 </div>
 <script>
-function filterUserSelect(input, selectId) {
-  const q = input.value.toLowerCase();
+// VA LOI DA SUA (2026-09): ham filterUserSelect() cu chi loc TREN <select> da
+// duoc render san voi toi da 100 user gan nhat - gio goi API
+// /admin/users/search de tim tren TOAN BO user, khong bi gioi han 100 nua.
+let userSearchTimers = {};
+function searchUserSelect(input, selectId) {
+  const q = input.value.trim();
   const select = document.getElementById(selectId);
-  let firstMatch = null;
-  for (const opt of select.options) {
-    const match = opt.textContent.toLowerCase().includes(q);
-    opt.style.display = match ? '' : 'none';
-    if (match && !firstMatch) firstMatch = opt;
-  }
-  if (firstMatch) select.value = firstMatch.value;
+  clearTimeout(userSearchTimers[selectId]);
+  if (!q) return; // o trong: giu nguyen danh sach mac dinh (100 user moi nhat) de form van dung duoc ngay
+  userSearchTimers[selectId] = setTimeout(async () => {
+    try {
+      const res = await fetch('/admin/users/search?q=' + encodeURIComponent(q));
+      const rows = await res.json();
+      select.innerHTML = '';
+      if (rows.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = 'Không tìm thấy user nào';
+        opt.disabled = true;
+        select.appendChild(opt);
+        return;
+      }
+      rows.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = (selectId === 'buffSelect1') ? `${u.username} (${u.ncoin}N/${u.vcoin}V)` : u.username;
+        select.appendChild(opt);
+      });
+    } catch (e) { console.error('Lỗi tìm user:', e); }
+  }, 300);
 }
 function showTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));

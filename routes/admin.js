@@ -70,6 +70,26 @@ router.get('/admin', async (req, res) => {
 });
 
 // PROVIDERS
+// TIM USER DE BUFF/DIEU CHINH (endpoint rieng, tra ve JSON)
+//
+// VA LOI DA SUA (2026-09): 3 form Buff (dieu chinh coin, buff BXH tuan, buff
+// BXH gioi thieu) truoc day chi chon duoc user tu <select> duoc render san
+// voi "SELECT ... LIMIT 100" (100 user MOI TAO GAN DAY NHAT) o route GET
+// /admin - loc bang JS phia client chi loc trong pham vi 100 dong DA CO SAN
+// do, khong he goi lai server. Khi web vuot qua 100 user, admin KHONG CON
+// CACH NAO chon duoc user cu hon 100 nguoi gan nhat qua 3 form nay nua - ke
+// ca khi can xu ly khieu nai/hoan tien thu cong cho ho. Them endpoint tim
+// kiem rieng, JS phia duoi se goi API nay thay vi chi loc tinh.
+router.get('/admin/users/search', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json([]);
+  const rows = await db.q(
+    'SELECT id, username, ncoin, vcoin FROM users WHERE username ILIKE $1 ORDER BY username LIMIT 20',
+    ['%' + q + '%']
+  );
+  res.json(rows);
+});
+
 router.post('/admin/providers', async (req, res) => {
   const { id, api_key, api_endpoint } = req.body;
   if (id && api_key !== undefined) {
@@ -150,6 +170,23 @@ router.post('/admin/tasks/:id/toggle', async (req, res) => {
   res.redirect('/admin#tasks');
 });
 router.post('/admin/tasks/:id/delete', async (req, res) => {
+  // VA LOI NGHIEM TRONG DA SUA (2026-09): truoc day XOA VO DIEU KIEN toan bo
+  // task_attempts cua nhiem vu, KE CA nhung luot dang o trang thai "cho_duyet"
+  // (bi cau dao/nghi ngo farm giu lai, DA CO SAN 1 dong transactions kieu
+  // 'earn_pending' hien trong lich su cua user). Xoa mat attempt do di thi
+  // dong 'earn_pending' kia VINH VIEN khong bao gio duoc chuyen thanh 'earn'
+  // (duyet) hay 'earn_rejected' (tu choi) nua - vi route duyet/tu choi tim
+  // attempt theo id se khong thay (da bi xoa) - tien coi nhu "treo" mai mai,
+  // khong cong cho user ma cung khong bao rieng ho biet la bi tu choi.
+  // Gio CHAN xoa neu con luot nao dang cho duyet, giong pattern da dung cho
+  // xoa provider/san pham dang co du lieu lien quan.
+  const pendingReview = await db.get(
+    "SELECT COUNT(*)::int as c FROM task_attempts WHERE task_id=$1 AND status='cho_duyet'",
+    [req.params.id]
+  );
+  if (pendingReview.c > 0) {
+    return res.redirect(`/admin?error=Không thể xóa: còn ${pendingReview.c} lượt đang chờ duyệt ở nhiệm vụ này (vào tab Bảo mật để duyệt/từ chối trước)#tasks`);
+  }
   // Xoa task_attempts truoc
   await db.run('DELETE FROM task_attempts WHERE task_id=$1', [req.params.id]);
   await db.run('DELETE FROM tasks WHERE id=$1', [req.params.id]);
@@ -174,8 +211,21 @@ router.post('/admin/withdrawals/:id/:action', async (req, res) => {
     try {
       await client.query('BEGIN');
       await client.query("UPDATE withdrawals SET status='rejected', processed_at=$1 WHERE id=$2", [Date.now(), id]);
-      if (w.ncoin_used > 0) await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [w.ncoin_used, w.user_id]);
-      if (w.vcoin_used > 0) await client.query('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [w.vcoin_used, w.user_id]);
+      if (w.ncoin_used > 0) {
+        await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [w.ncoin_used, w.user_id]);
+        // VA LOI DA SUA (2026-09): truoc day khi tu choi rut tien, coin duoc
+        // hoan lai vao vi NHUNG khong ghi dong nao vao bang "transactions" ca
+        // - nghia la trang /history cua user hoan toan khong giai thich duoc
+        // vi sao so du tu nhien tang len (moi hanh dong khac trong he thong
+        // deu ghi log giao dich, rieng cho nay bi thieu). Gio ghi day du.
+        await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'refund',$2,'ncoin',$3,$4)`,
+          [w.user_id, w.ncoin_used, `Hoàn tiền do yêu cầu rút #${w.id} bị từ chối`, Date.now()]);
+      }
+      if (w.vcoin_used > 0) {
+        await client.query('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [w.vcoin_used, w.user_id]);
+        await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'refund',$2,'vcoin',$3,$4)`,
+          [w.user_id, w.vcoin_used, `Hoàn tiền do yêu cầu rút #${w.id} bị từ chối`, Date.now()]);
+      }
       await client.query('COMMIT');
     } catch(e) { await client.query('ROLLBACK'); console.error(e); return res.redirect('/admin?error=Lỗi khi hoàn tiền, xem log server#withdrawals'); }
     finally { client.release(); }
@@ -208,7 +258,10 @@ router.post('/admin/buff', async (req, res) => {
         [user_id, vcoinAmt>0?'topup':'buy', Math.abs(vcoinAmt), `Admin ${vcoinAmt>0?'cộng':'trừ'} Vcoin: ${note||''}`, Date.now()]);
     }
     await client.query('COMMIT');
-  } catch(e) { await client.query('ROLLBACK'); console.error(e); } finally { client.release(); }
+  } catch(e) {
+    await client.query('ROLLBACK'); console.error(e);
+    return res.redirect('/admin?error=Lỗi khi cộng/trừ coin, xem log server#buff');
+  } finally { client.release(); }
   res.redirect('/admin?ok=1#buff');
 });
 
@@ -381,9 +434,13 @@ router.post('/admin/products/:id/toggle', async (req, res) => {
 });
 router.post('/admin/products/:id/restock', async (req, res) => {
   const { stock } = req.body;
-  if (stock === undefined || stock === '') return res.redirect('/admin?error=Nhập số lượng kho mới');
-  await db.run('UPDATE products SET stock=$1 WHERE id=$2', [parseInt(stock), req.params.id]);
-  res.redirect('/admin#shop');
+  if (stock === undefined || stock === '') return res.redirect('/admin?error=Nhập số lượng kho mới#shop');
+  const stockVal = parseInt(stock, 10);
+  // Kiem tra hop le truoc khi ghi DB, tranh gui NaN xuong cot INTEGER cua
+  // Postgres (se gay loi query kho hieu neu admin lo go chu thay vi so).
+  if (!Number.isFinite(stockVal)) return res.redirect('/admin?error=Số lượng kho không hợp lệ#shop');
+  await db.run('UPDATE products SET stock=$1 WHERE id=$2', [stockVal, req.params.id]);
+  res.redirect('/admin?ok=1#shop');
 });
 // Them hang loat tai khoan/thong tin vao "kho" cua 1 san pham kieu 'pool'
 // (moi dong 1 mon hang, se tu dong giao cho khach khi ho mua - xem routes/shop.js)
@@ -413,23 +470,54 @@ router.post('/admin/products/:id/delete', async (req, res) => {
 
 // Xu ly don hang mua san pham (chi ap dung cho don kieu 'manual', vi don
 // 'pool' da tu dong hoan tat + giao hang ngay luc mua roi)
+//
+// VA LOI DA SUA (2026-09): truoc day route nay KHONG kiem tra o.status truoc
+// khi xu ly (khac han /admin/withdrawals/:id/:action da co check status=
+// 'pending' ngay tu dau). He qua: neu admin bam "Tu choi" 2 lan (double-click,
+// mat mang bam lai, mo 2 tab...) thi coin se duoc HOAN LAI 2 LAN cho cung 1
+// don hang. Gio dung transaction + SELECT ... FOR UPDATE de khoa dong don
+// hang lai va chi xu ly neu dang o trang thai 'pending', giong het pattern
+// cua withdrawals.
 router.post('/admin/orders/:id/:action', async (req, res) => {
   const { id, action } = req.params;
-  if (action === 'done') {
-    const { delivery_info } = req.body;
-    await db.run(
-      "UPDATE orders SET status='completed', delivery_info=$1, processed_at=$2 WHERE id=$3",
-      [delivery_info || '', Date.now(), id]
-    );
-  } else {
-    const o = await db.get('SELECT * FROM orders WHERE id=$1', [id]);
-    if (o) {
-      if (o.price_ncoin>0) await db.run('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [o.price_ncoin, o.user_id]);
-      if (o.price_vcoin>0) await db.run('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [o.price_vcoin, o.user_id]);
-      await db.run("UPDATE orders SET status='rejected', processed_at=$1 WHERE id=$2", [Date.now(), id]);
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const oRes = await client.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE', [id]);
+    const o = oRes.rows[0];
+    if (!o || o.status !== 'pending') {
+      await client.query('ROLLBACK');
+      return res.redirect('/admin#shop'); // da xu ly roi (hoac khong ton tai) - bo qua, khong lam gi them
     }
+    if (action === 'done') {
+      const { delivery_info } = req.body;
+      await client.query(
+        "UPDATE orders SET status='completed', delivery_info=$1, processed_at=$2 WHERE id=$3",
+        [delivery_info || '', Date.now(), id]
+      );
+    } else {
+      if (o.price_ncoin > 0) {
+        await client.query('UPDATE users SET ncoin=ncoin+$1 WHERE id=$2', [o.price_ncoin, o.user_id]);
+        // Cung loai loi thieu log giao dich da sua o withdrawals reject phia
+        // tren - hoan tien don hang cung phai ghi vao "transactions".
+        await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'refund',$2,'ncoin',$3,$4)`,
+          [o.user_id, o.price_ncoin, `Hoàn tiền do đơn hàng #${o.order_code || o.id} bị từ chối`, Date.now()]);
+      }
+      if (o.price_vcoin > 0) {
+        await client.query('UPDATE users SET vcoin=vcoin+$1 WHERE id=$2', [o.price_vcoin, o.user_id]);
+        await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'refund',$2,'vcoin',$3,$4)`,
+          [o.user_id, o.price_vcoin, `Hoàn tiền do đơn hàng #${o.order_code || o.id} bị từ chối`, Date.now()]);
+      }
+      await client.query("UPDATE orders SET status='rejected', processed_at=$1 WHERE id=$2", [Date.now(), id]);
+    }
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK'); console.error(e);
+    return res.redirect('/admin?error=Lỗi khi xử lý đơn hàng, xem log server#shop');
+  } finally {
+    client.release();
   }
-  res.redirect('/admin#shop');
+  res.redirect('/admin?ok=1#shop');
 });
 
 // ANNOUNCEMENTS
@@ -490,7 +578,7 @@ router.post('/admin/settings', async (req, res) => {
   const fields = ['weekly_reward_1','weekly_reward_2','weekly_reward_3','withdraw_min','withdraw_notice',
     'withdraw_fee_rookie','withdraw_fee_silver','withdraw_fee_gold','withdraw_fee_platinum','withdraw_fee_diamond','withdraw_fee_legend',
     'topup_notice','topup_guide','admin_bank',
-    'ranking_enabled','vcoin_lockdays'];
+    'ranking_enabled','referral_enabled','referral_ranking_enabled','vcoin_lockdays'];
   for (const f of fields) {
     if (req.body[f] !== undefined) await db.run('INSERT INTO settings (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2', [f, req.body[f]]);
   }

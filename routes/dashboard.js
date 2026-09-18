@@ -46,7 +46,17 @@ router.get('/dashboard', async (req, res) => {
         [start, end]
       );
       const d = new Date(start);
-      days.push({ date:`${d.getUTCDate()}/${d.getUTCMonth()+1}`, total: parseInt(row.total) });
+      // VA LOI LECH NGAY DA SUA (2026-09, cung nhom voi loi lech gio da sua
+      // truoc do o cac file view): getDayStart() tra ve dung moc "nua dem gio
+      // VN" duoi dang epoch UTC - nhung nua dem VN (00:00 ICT) chinh la 17:00
+      // UTC cua NGAY HOM TRUOC. Server chay mui gio UTC, nen goi truc tiep
+      // d.getUTCDate()/d.getUTCMonth() se LUON tra ve ngay/thang truoc 1 ngay
+      // so voi ngay lich VN that su (vd 1/10 gio VN se bi hien thanh 30/9,
+      // sai ca sang thang/nam moi o cac moc giao thang). Dung
+      // toLocaleDateString voi timeZone Asia/Ho_Chi_Minh de lay dung ngay lich
+      // VN, giong cach da sua o cac view khac.
+      const label = d.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: 'numeric', month: 'numeric' });
+      days.push({ date: label, total: parseInt(row.total) });
     }
 
     return res.render('admin-dashboard', {
@@ -73,7 +83,11 @@ router.get('/dashboard', async (req, res) => {
       [user.id, start, end]
     );
     const d = new Date(start);
-    days.push({ date:`${d.getDate()}/${d.getMonth()+1}`, total: parseInt(row.total) });
+    // Cung loai loi lech ngay da sua o nhanh admin phia tren - dung
+    // toLocaleDateString voi timeZone ro rang thay vi getDate()/getMonth() cua
+    // server (dang chay UTC).
+    const label = d.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: 'numeric', month: 'numeric' });
+    days.push({ date: label, total: parseInt(row.total) });
   }
 
   const weekStart = Date.now() - 7*DAY_MS;

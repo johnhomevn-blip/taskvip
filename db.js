@@ -274,6 +274,7 @@ async function init() {
     INSERT INTO settings VALUES ('withdraw_fee_legend','0') ON CONFLICT DO NOTHING;
 
     INSERT INTO settings VALUES ('referral_enabled','1') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('referral_ranking_enabled','1') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('referral_threshold_2','51') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('referral_threshold_3','101') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('referral_rate_1','7') ON CONFLICT DO NOTHING;
@@ -565,11 +566,14 @@ async function init() {
   console.log('Database san sang');
 }
 
-init().catch(err => { console.error('DB error:', err); process.exit(1); });
+const dbReadyPromise = init().catch(err => { console.error('DB error:', err); process.exit(1); });
 
 pool.q   = async (t, p) => (await pool.query(t, p)).rows;
 pool.get = async (t, p) => (await pool.query(t, p)).rows[0] || null;
 pool.run = async (t, p) => { const r = await pool.query(t, p); return { changes: r.rowCount, lastID: r.rows[0]?.id }; };
+// Cho phep cac script chay rieng le (vd create-admin.js) cho den khi init()
+// tao xong bang/cot thay vi phai doan bang setTimeout co dinh.
+pool.ready = dbReadyPromise;
 
 module.exports = pool;
 // Tu dong cap nhat API key cho providers tu environment variables

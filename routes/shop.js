@@ -125,8 +125,22 @@ router.post('/shop/:id/buy', async (req, res) => {
       );
     }
 
-    await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'buy',$2,'ncoin',$3,$4)`,
-      [user.id, price, `Mua: ${product.name} x${quantity} (mã ${orderCode})`, now]);
+    // VA LOI GHI SAI LICH SU GIAO DICH DA SUA (2026-09): truoc day LUON ghi 1
+    // dong voi coin_type CO DINH la 'ncoin' va amount = tong gia `price`, bat
+    // ke thuc te co the da tru MOT PHAN hoac TOAN BO tu Vcoin (deductVcoin).
+    // Tien trong tai khoan van tru DUNG (dong code phia tren khong doi), day
+    // CHI la loi ghi log/lich su - nhung se gay sai lech khi doi soat/thong ke
+    // theo loai coin (vd bao cao "da tieu bao nhieu Vcoin qua Shop" se luon ra
+    // 0). Gio ghi rieng tung dong theo dung loai coin THUC SU bi tru, giong
+    // cach withdrawals dang tach ncoin_used/vcoin_used.
+    if (deductNcoin > 0) {
+      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'buy',$2,'ncoin',$3,$4)`,
+        [user.id, deductNcoin, `Mua: ${product.name} x${quantity} (mã ${orderCode})`, now]);
+    }
+    if (deductVcoin > 0) {
+      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'buy',$2,'vcoin',$3,$4)`,
+        [user.id, deductVcoin, `Mua: ${product.name} x${quantity} (mã ${orderCode})`, now]);
+    }
     await client.query('COMMIT');
   } catch(e) { await client.query('ROLLBACK'); console.error(e); return res.redirect('/shop?error=Lỗi, thử lại'); }
   finally { client.release(); }

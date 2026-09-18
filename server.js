@@ -9,6 +9,7 @@ require('express-async-errors');
 const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
+const PgSessionStore = require('connect-pg-simple')(session);
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const db = require('./db');
@@ -126,6 +127,25 @@ if (!SESSION_SECRET) {
 }
 
 app.use(session({
+  // VA LOI DA SUA (2026-09): truoc day KHONG cau hinh "store" gi ca, nen
+  // express-session tu dung MemoryStore mac dinh - ban than thu vien nay tu
+  // canh bao "not designed for a production environment". Hau qua thuc te:
+  // moi lan Railway deploy/restart server (xay ra kha thuong xuyen moi lan
+  // sua code), TOAN BO du lieu session nam trong RAM bien mat -> TAT CA user
+  // dang dang nhap deu bi dang xuat dot ngot, du SESSION_SECRET co dinh hay
+  // khong (SESSION_SECRET chi chong gia mao chu ky cookie, khong lam session
+  // "song lai" neu du lieu that su da mat khoi bo nho). Neu sau nay chay
+  // nhieu instance cung luc, cac instance cung KHONG chia se duoc session voi
+  // nhau (dang nhap o instance A, sang instance B lai bi coi la chua dang nhap).
+  // Gio luu session vao CHINH Postgres dang dung san (bang rieng
+  // "user_sessions", tu tao neu chua co) qua connect-pg-simple - session song
+  // sot qua restart/deploy VA dung chung duoc cho nhieu instance sau nay.
+  store: new PgSessionStore({
+    pool: db,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 60, // tu don session het han moi gio (giay)
+  }),
   secret: SESSION_SECRET,
   resave: false, saveUninitialized: false,
   cookie: {

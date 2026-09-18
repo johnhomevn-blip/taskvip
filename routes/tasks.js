@@ -11,6 +11,18 @@ const CLICK_COOLDOWN_MS = 10 * 1000; // delay 10 giay giua cac lan bam "Lay link
 
 // Luu thoi diem bam gan nhat cua tung user (chong spam tao link lien tuc)
 const lastClickMap = new Map();
+// VA LOI RO RI BO NHO DA SUA (2026-09): Map nay truoc day KHONG BAO GIO xoa
+// entry cu - moi user (moi bam nut it nhat 1 lan) se o lai trong RAM VINH
+// VIEN cho toi khi server restart. Voi 1 web chay lau dai nhieu thang/nam va
+// ngay cang nhieu user, day la 1 memory leak cham nhung co that. Don dinh ky
+// nhung entry da qua lau (khong con y nghia gi vi cooldown chi 10 giay) de
+// giu Map luon nho gon.
+setInterval(() => {
+  const cutoff = Date.now() - 10 * 60 * 1000; // giu du 10 phut la du du (cooldown chi 10s)
+  for (const [uid, ts] of lastClickMap) {
+    if (ts < cutoff) lastClickMap.delete(uid);
+  }
+}, 10 * 60 * 1000);
 
 // Tinh moc thoi gian "tinh tu day" de dem so luot da hoan thanh, tuy theo
 // kieu reset cua tung nhiem vu (admin chon o trang quan tri):

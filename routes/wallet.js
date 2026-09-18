@@ -36,7 +36,14 @@ router.get('/wallet', async (req, res) => {
     'SELECT COALESCE(SUM(amount),0) as total FROM topups WHERE user_id=$1 AND withdrawable_at < $2',
     [user.id, Date.now()]
   );
-  const vcoinUnlocked = parseInt(unlocked?.total || 0);
+  // VA LOI DA SUA (2026-09): SUM(amount) o tren la TONG GOC cua cac lan nap da
+  // qua han khoa 28 ngay - no KHONG tru di phan Vcoin da tieu roi (mua Shop
+  // hoac da rut truoc do), vi Vcoin la 1 quy chung (users.vcoin), khong theo
+  // doi rieng tung lan nap da bi tieu bao nhieu. Vi vay so nay co the LON HON
+  // user.vcoin thuc te dang co -> hien thi sai, gay hieu lam "con nhieu Vcoin
+  // rut duoc" hon so voi that. Cach an toan/dung nhat: gioi han lai bang
+  // Math.min voi so du Vcoin THAT SU dang co.
+  const vcoinUnlocked = Math.min(parseInt(unlocked?.total || 0), user.vcoin);
   const { fee: currentFee, tierLabel, tierTag } = await getFeeForUser(user);
 
   res.render('wallet', { user, settings: s, history,
@@ -106,7 +113,10 @@ router.post('/wallet/withdraw', async (req, res) => {
       'SELECT COALESCE(SUM(amount),0) as total FROM topups WHERE user_id=$1 AND withdrawable_at < $2',
       [user.id, Date.now()]
     );
-    const freshVcoinUnlocked = parseInt(unlockedRes.rows[0]?.total || 0);
+    // Cung 1 loai loi da sua o GET /wallet phia tren - gioi han lai bang so
+    // Vcoin THAT SU dang co (freshUser.vcoin, vua khoa dong o tren) de khong
+    // tinh du thua phan da tieu roi.
+    const freshVcoinUnlocked = Math.min(parseInt(unlockedRes.rows[0]?.total || 0), freshUser.vcoin);
     const totalAvailable = freshUser.ncoin + freshVcoinUnlocked;
 
     if (totalCharge > totalAvailable) {
@@ -138,8 +148,20 @@ router.post('/wallet/withdraw', async (req, res) => {
     // TABLE withdrawals ADD COLUMN ncoin_used/vcoin_used).
     await client.query(`INSERT INTO withdrawals (user_id,amount,method,detail,status,fee,ncoin_used,vcoin_used,created_at) VALUES ($1,$2,$3,$4,'pending',$5,$6,$7,$8)`,
       [user.id, amount, method, detail, fee, deductNcoin, deductVcoin, Date.now()]);
-    await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'withdraw',$2,'ncoin',$3,$4)`,
-      [user.id, totalCharge, `Rút ${amount.toLocaleString('vi-VN')}đ qua ${method} (phí: ${fee.toLocaleString('vi-VN')}đ, tổng trừ: ${totalCharge.toLocaleString('vi-VN')})`, Date.now()]);
+    // VA LOI GHI SAI LICH SU GIAO DICH DA SUA (2026-09, cung loai voi loi da
+    // sua o routes/shop.js): truoc day LUON ghi 1 dong voi coin_type CO DINH
+    // la 'ncoin' va amount = totalCharge, du thuc te co the da tru MOT PHAN
+    // hoac TOAN BO tu Vcoin (deductVcoin). Bang "withdrawals" van luu dung
+    // ncoin_used/vcoin_used nen tien khong sai, day CHI la lich su/thong ke
+    // trong bang "transactions" bi sai lech theo loai coin. Gio tach dung.
+    if (deductNcoin > 0) {
+      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'withdraw',$2,'ncoin',$3,$4)`,
+        [user.id, deductNcoin, `Rút ${amount.toLocaleString('vi-VN')}đ qua ${method} (phí: ${fee.toLocaleString('vi-VN')}đ, tổng trừ: ${totalCharge.toLocaleString('vi-VN')})`, Date.now()]);
+    }
+    if (deductVcoin > 0) {
+      await client.query(`INSERT INTO transactions (user_id,type,amount,coin_type,description,created_at) VALUES ($1,'withdraw',$2,'vcoin',$3,$4)`,
+        [user.id, deductVcoin, `Rút ${amount.toLocaleString('vi-VN')}đ qua ${method} (phí: ${fee.toLocaleString('vi-VN')}đ, tổng trừ: ${totalCharge.toLocaleString('vi-VN')})`, Date.now()]);
+    }
     await client.query('COMMIT');
   } catch(e) { await client.query('ROLLBACK'); console.error(e); return res.redirect('/wallet?error=Lỗi, thử lại sau'); }
   finally { client.release(); }

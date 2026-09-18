@@ -58,7 +58,7 @@
   <div style="font-size:11px;color:var(--text2);margin-top:10px">⚠️ Khi đã đạt 1 bậc, tỷ lệ hoa hồng được giữ nguyên vĩnh viễn cho bạn dù sau này số người giới thiệu thay đổi.</div>
 </div>
 
-<%if(!enabled){%>
+<%if(!rankingEnabled){%>
 <div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">🎁</div><div style="color:var(--text2)">Tính năng bảng xếp hạng giới thiệu theo tháng đang tắt. Bạn vẫn nhận hoa hồng bình thường.</div></div>
 <%}else{%>
 <div class="multiplier-bar" style="margin-bottom:16px">
@@ -114,7 +114,7 @@ function copyRefLink(){
     setTimeout(()=>btn.textContent=old,1500);
   }).catch(()=>document.execCommand('copy'));
 }
-<%if(enabled){%>
+<%if(rankingEnabled){%>
 let s=<%=secondsLeft%>;const el=document.getElementById('rc');
 if(el){function fmt(x){const d=Math.floor(x/86400),h=Math.floor((x%86400)/3600),m=Math.floor((x%3600)/60),sc=x%60;return d>0?`${d}n ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`:`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`}
 el.textContent=fmt(s);setInterval(()=>{if(s>0){s--;el.textContent=fmt(s);}},1000);}
