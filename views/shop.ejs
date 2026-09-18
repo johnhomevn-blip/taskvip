@@ -34,9 +34,14 @@
     </div>
     <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Ưu tiên trừ Ncoin trước, thiếu mới trừ Vcoin</div>
     <div style="font-size:11px;color:var(--text2);margin-bottom:10px"><%=p.effective_stock===-1?'Không giới hạn':p.effective_stock===0?'Hết hàng':`Còn ${p.effective_stock}`%></div>
-    <form method="POST" action="/shop/<%=p.id%>/buy" style="display:flex;gap:6px">
-      <input name="quantity" type="number" min="1" max="<%=p.effective_stock===-1?50:Math.min(50,p.effective_stock)%>" value="1" style="width:64px;padding:8px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);text-align:center" <%=p.effective_stock===0?'disabled':''%>>
-      <button class="btn-task" style="flex:1" <%=p.effective_stock===0?'disabled':''%>><%=p.effective_stock===0?'Hết hàng':'🛍️ Đổi ngay'%></button>
+    <form method="POST" action="/shop/<%=p.id%>/buy" style="display:flex;flex-direction:column;gap:6px">
+      <%if(p.require_note){%>
+      <input name="note" placeholder="<%=p.note_label||'Nhập thông tin cần thiết'%>" required maxlength="300" style="padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-size:12.5px">
+      <%}%>
+      <div style="display:flex;gap:6px">
+        <input name="quantity" type="number" min="1" max="<%=p.effective_stock===-1?50:Math.min(50,p.effective_stock)%>" value="1" style="width:64px;padding:8px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);text-align:center" <%=p.effective_stock===0?'disabled':''%>>
+        <button class="btn-task" style="flex:1" <%=p.effective_stock===0?'disabled':''%>><%=p.effective_stock===0?'Hết hàng':'🛍️ Đổi ngay'%></button>
+      </div>
     </form>
   </div>
   <%})%>
@@ -53,6 +58,7 @@
       <div>
         <div><b><%=o.pname%></b> x<%=o.quantity||1%> <span style="font-size:11px;color:var(--text2)">(mã <%=o.order_code%>)</span></div>
         <div style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(o.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+        <%if(o.note){%><div style="font-size:12px;color:var(--text2);margin-top:2px">📝 Bạn đã nhập: <b style="color:var(--text)"><%=o.note%></b></div><%}%>
       </div>
       <div style="text-align:right">
         <div><%if(o.price_ncoin>0){%><span class="coin-wrap"><span class="ni sm">N</span><%=o.price_ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span><%}%><%if(o.price_vcoin>0){%><span class="coin-wrap"><span class="vi sm">V</span><%=o.price_vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span><%}%></div>

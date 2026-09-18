@@ -17,7 +17,11 @@ router.get('/shop', async (req, res) => {
         ELSE p.stock END AS effective_stock
     FROM products p WHERE p.active=1 ORDER BY p.id DESC
   `);
-  const myOrders = await db.q('SELECT o.*, p.name as pname FROM orders o JOIN products p ON p.id=o.product_id WHERE o.user_id=$1 ORDER BY o.created_at DESC LIMIT 20', [user.id]);
+  // LEFT JOIN + COALESCE(p.name, o.product_name): don hang van hien dung ten
+  // ngay ca khi san pham goc DA BI ADMIN XOA HAN (xem giai thich o migration
+  // them cot product_name trong db.js) - INNER JOIN cu se lam don hang bien
+  // mat khoi lich su ngay khi xoa san pham, du don da hoan tat tu lau.
+  const myOrders = await db.q('SELECT o.*, COALESCE(p.name, o.product_name) as pname FROM orders o LEFT JOIN products p ON p.id=o.product_id WHERE o.user_id=$1 ORDER BY o.created_at DESC LIMIT 20', [user.id]);
   res.render('shop', { user, categories, products, myOrders, error: req.query.error||null, ok: req.query.ok||null });
 });
 
@@ -34,6 +38,14 @@ router.post('/shop/:id/buy', async (req, res) => {
 
   const product = await db.get('SELECT * FROM products WHERE id=$1 AND active=1', [req.params.id]);
   if (!product) return res.redirect('/shop?error=Sản phẩm không tồn tại');
+
+  // YEU CAU KHACH NHAP THONG TIN (vd username Roblox) NEU SAN PHAM BAT
+  // require_note - kiem tra & lam sach o day, TRUOC khi mo transaction/tru
+  // coin, de khach thieu thong tin khong bi mat coin oan.
+  const note = (req.body.note || '').trim().slice(0, 300);
+  if (product.require_note && !note) {
+    return res.redirect(`/shop?error=${encodeURIComponent('Vui lòng nhập: ' + (product.note_label || 'thông tin cần thiết'))}`);
+  }
 
   const price = (product.price || 0) * quantity;
   const orderCode = await generateOrderCode();
@@ -113,9 +125,9 @@ router.post('/shop/:id/buy', async (req, res) => {
     }
 
     const orderRow = await client.query(
-      `INSERT INTO orders (user_id,product_id,order_code,quantity,price_ncoin,price_vcoin,status,delivery_info,created_at,processed_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-      [user.id, product.id, orderCode, quantity, deductNcoin, deductVcoin, status, deliveryInfo, now, processedAt]
+      `INSERT INTO orders (user_id,product_id,order_code,quantity,price_ncoin,price_vcoin,status,delivery_info,created_at,processed_at,product_name,note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+      [user.id, product.id, orderCode, quantity, deductNcoin, deductVcoin, status, deliveryInfo, now, processedAt, product.name, note]
     );
 
     if (freshProduct.delivery_mode === 'pool') {

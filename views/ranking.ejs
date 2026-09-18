@@ -8,8 +8,6 @@
 <div class="main" id="main"><%- include('partials/topbar') %>
 <div class="topbar"><div class="topbar-title">🏆 Đua Top Tuần</div></div>
 <div class="page">
-<%if(!enabled){%><div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">🏆</div><div style="color:var(--text2)">Tính năng đua top đang tắt.</div></div>
-<%}else{%>
 <div class="multiplier-bar" style="margin-bottom:16px">
   <div><div class="mult-lbl">Tuần kết thúc sau</div><div class="mult-val" id="rc" style="font-size:22px">--</div></div>
   <div style="text-align:right"><div class="mult-lbl">Vị trí của bạn</div><div style="font-size:22px;font-weight:700;color:var(--accent2)">#<%=myRank||'—'%></div></div>
@@ -37,7 +35,6 @@
 </div>
 <%})%>
 <%if(rankings.length===0){%><div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">🏆</div><div style="color:var(--text2)">Chưa có dữ liệu. Hãy là người đầu tiên!</div></div><%}%>
-<%}%>
 </div></div>
 <script>
 let s=<%=secondsLeft%>;const el=document.getElementById('rc');

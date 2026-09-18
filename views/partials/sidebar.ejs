@@ -33,7 +33,7 @@
     <div class="nav-section">Kiếm tiền</div>
     <a href="/tasks" class="nav-item <%=page==='tasks'?'active':''%>"><span class="ni2">⚡</span> Nhiệm Vụ</a>
     <a href="/shop" class="nav-item <%=page==='shop'?'active':''%>"><span class="ni2">🛍️</span> Quy Đổi</a>
-    <a href="/ranking" class="nav-item <%=page==='ranking'?'active':''%>"><span class="ni2">🏆</span> Đua Top</a>
+    <%if(typeof rankingEnabled==='undefined'||rankingEnabled){%><a href="/ranking" class="nav-item <%=page==='ranking'?'active':''%>"><span class="ni2">🏆</span> Đua Top</a><%}%>
     <a href="/referral" class="nav-item <%=page==='referral'?'active':''%>"><span class="ni2">🎁</span> Giới Thiệu</a>
     <div class="nav-section">Tài chính</div>
     <a href="/wallet" class="nav-item <%=page==='wallet'?'active':''%>"><span class="ni2">💸</span> Rút Tiền</a>

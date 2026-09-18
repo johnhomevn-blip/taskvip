@@ -20,25 +20,31 @@ router.get('/ranking', async (req, res) => {
   await checkAndDistributeAllRewards();
   const enabledRow = await db.get("SELECT value FROM settings WHERE key='ranking_enabled'");
   const enabled = enabledRow?.value === '1';
+  // VA LOI DA SUA (2026-09, "tat phai bien mat that su"): truoc day khi tat
+  // trang nay van render voi 1 dong chu "tinh nang dang tat" - nguoi dung go
+  // thang URL /ranking van vao duoc, chi la thay trang trong. Gio dieu huong
+  // hang ve /tasks luon, dung nghia "bien mat" (menu sidebar cung da an link
+  // nay roi - xem res.locals.rankingEnabled trong server.js).
+  if (!enabled) return res.redirect('/tasks');
   const weekStart = getWeekStart();
-  const rankings = enabled ? await db.q(
+  const rankings = await db.q(
     `SELECT wr.*, u.username FROM weekly_rankings wr JOIN users u ON u.id=wr.user_id
      WHERE wr.week_start=$1 ORDER BY wr.task_count DESC LIMIT 10`, [weekStart]
-  ) : [];
+  );
   const settings = await db.q("SELECT * FROM settings WHERE key LIKE 'weekly_reward_%'");
   const rewards = {}; settings.forEach(s => rewards[s.key]=parseInt(s.value));
   const secondsLeft = Math.max(0, Math.floor((getWeekStart()+7*24*60*60*1000 - Date.now())/1000));
-  const myRankRow = enabled ? await db.get(
+  const myRankRow = await db.get(
     `SELECT COUNT(*)+1 as rank FROM weekly_rankings WHERE week_start=$1 AND task_count>(SELECT COALESCE(task_count,0) FROM weekly_rankings WHERE user_id=$2 AND week_start=$1)`,
     [weekStart, req.user.id]
-  ) : null;
+  );
   // Che ten khi hien thi cong khai tren bang xep hang, tranh lo username
   // that cua nguoi khac (van giu username that neu la chinh minh de de nhan ra)
   const maskedRankings = rankings.map(r => ({
     ...r,
     displayName: r.user_id === req.user.id ? `${r.username} (Bạn)` : maskUsername(r.username)
   }));
-  res.render('ranking', { user: req.user, rankings: maskedRankings, rewards, secondsLeft, enabled, myRank: parseInt(myRankRow?.rank||0) });
+  res.render('ranking', { user: req.user, rankings: maskedRankings, rewards, secondsLeft, myRank: parseInt(myRankRow?.rank||0) });
 });
 
 module.exports = router;

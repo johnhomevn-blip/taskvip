@@ -196,6 +196,18 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// Cho sidebar (va cac trang lien quan) biet BXH tuan/BXH gioi thieu dang
+// bat hay tat, de AN HAN muc menu tuong ung thay vi dua nguoi dung vao 1
+// trang chi co dong chu "tinh nang dang tat" (yeu cau 2026-09: tat la phai
+// "bien mat" that su, khong chi an du lieu ben trong).
+app.use(async (req, res, next) => {
+  const rows = await db.q("SELECT key,value FROM settings WHERE key IN ('ranking_enabled','referral_ranking_enabled')");
+  const s = {}; rows.forEach(r => s[r.key] = r.value);
+  res.locals.rankingEnabled = s.ranking_enabled === '1';
+  res.locals.referralRankingEnabled = s.referral_ranking_enabled !== '0';
+  next();
+});
+
 function auth(req, res, next) { if (!req.user) return res.redirect('/login'); next(); }
 // (Kiem tra quyen admin gio nam ben trong routes/admin.js, chi ap dung cho
 // duong dan bat dau bang '/admin' - xem giai thich chi tiet o gan cuoi file

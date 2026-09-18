@@ -3,6 +3,7 @@ const db = require('../db');
 const breaker = require('../lib/breaker');
 const fraud = require('../lib/fraud');
 const { creditAttemptReward } = require('../lib/attemptFlow');
+const { getClientIp } = require('../lib/ip');
 const router = express.Router();
 
 // Kiem tra quyen admin - CHI ap dung cho duong dan bat dau bang '/admin'
@@ -20,7 +21,10 @@ router.get('/admin', async (req, res) => {
   const categories = await db.q('SELECT * FROM task_categories ORDER BY sort_order');
   const providers = await db.q('SELECT * FROM providers ORDER BY id');
   const withdrawals = await db.q(`SELECT w.*, u.username FROM withdrawals w JOIN users u ON u.id=w.user_id WHERE w.status='pending' ORDER BY w.created_at ASC`);
-  const orders = await db.q(`SELECT o.*, u.username, p.name as pname FROM orders o JOIN users u ON u.id=o.user_id JOIN products p ON p.id=o.product_id WHERE o.status='pending' ORDER BY o.created_at ASC`);
+  // LEFT JOIN products (khong con INNER JOIN): don dang cho van hien ten qua
+  // COALESCE(p.name, o.product_name) ke ca truong hop hy huu san pham bi xoa
+  // trong luc don van con "pending" (xem migration cot product_name).
+  const orders = await db.q(`SELECT o.*, u.username, COALESCE(p.name, o.product_name) as pname FROM orders o JOIN users u ON u.id=o.user_id LEFT JOIN products p ON p.id=o.product_id WHERE o.status='pending' ORDER BY o.created_at ASC`);
   const announcements = await db.q('SELECT * FROM announcements ORDER BY created_at DESC');
   const popups = await db.q('SELECT * FROM popups ORDER BY created_at DESC');
   const regs = await db.q('SELECT * FROM regulations ORDER BY sort_order, id');
@@ -36,7 +40,7 @@ router.get('/admin', async (req, res) => {
 
   // Giam sat IP toan he thong: cac lan vuot link gan day + so tai khoan khac dung chung IP
   const ipMonitor = await db.q(`
-    SELECT ta.id, ta.ip_created, ta.fingerprint, ta.status, ta.created_at,
+    SELECT ta.id, ta.ip_created, ta.fingerprint, ta.status, ta.created_at, ta.ip_is_vpn, ta.ip_is_mobile, ta.ip_isp,
     u.username, t.name as task_name, t.provider as task_provider,
     (SELECT COUNT(*) FROM ip_user_map WHERE ip=ta.ip_created AND user_id != ta.user_id) as other_accounts,
     (SELECT COUNT(*) FROM fp_user_map WHERE fingerprint=ta.fingerprint AND user_id != ta.user_id AND ta.fingerprint IS NOT NULL AND ta.fingerprint != '') as other_accounts_fp
@@ -64,8 +68,20 @@ router.get('/admin', async (req, res) => {
   `);
   const securityEvents = await db.q('SELECT * FROM security_events ORDER BY created_at DESC LIMIT 100');
 
+  // Chan doan IP (xem card "Chan doan IP that cua server" o tab bao mat) -
+  // giup admin tu kiem tra vi sao IP hien thi co the sai ma khong can SSH
+  // vao server doc log.
+  const ipDiag = {
+    used: getClientIp(req),
+    cfHeader: req.headers['cf-connecting-ip'] || '',
+    xff: req.headers['x-forwarded-for'] || '',
+    reqIp: req.ip,
+    trustCf: process.env.TRUST_CF_HEADER === '1',
+    canonicalHost: process.env.CANONICAL_HOST || '',
+  };
+
   res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, shopCategories, settings: s, ipMonitor,
-    breakerStatus, breakerLogs, heldAttempts, flaggedUsers, securityEvents,
+    breakerStatus, breakerLogs, heldAttempts, flaggedUsers, securityEvents, ipDiag,
     error: req.query.error||null, ok: req.query.ok||null });
 });
 
@@ -158,6 +174,26 @@ router.post('/admin/tasks', async (req, res) => {
      finalResetMode, parseInt(reset_hours)||24, require_review === 'on' ? 1 : 0, Date.now()]
   );
   res.redirect('/admin#tasks');
+});
+// SUA NHIEM VU: truoc day CHI co the tao moi/bat-tat/xoa - khong co cach nao
+// sua lai 1 nhiem vu da tao (kieu ca thuong Ncoin, gioi han luot/ngay...) ma
+// khong xoa roi tao lai (mat het lich su task_attempts lien ket vi route xoa
+// xoa luon task_attempts). Route nay cho sua TOAN BO cac truong co the sua,
+// dung chung dieu kien validate/parse voi route tao o tren.
+router.post('/admin/tasks/:id/edit', async (req, res) => {
+  const { name, category_id, provider, target_url, base_reward, exp_reward, min_seconds, daily_limit, ip_daily_limit, reset_mode, reset_hours, require_review, active } = req.body;
+  if (!name || !name.trim() || !base_reward) return res.redirect('/admin?error=Thiếu thông tin#tasks');
+  const finalTargetUrl = (target_url && target_url.trim()) ? target_url.trim() : `${process.env.BASE_URL}/tasks`;
+  const finalResetMode = reset_mode === 'rolling' ? 'rolling' : 'daily';
+  await db.run(
+    `UPDATE tasks SET name=$1, category_id=$2, provider=$3, target_url=$4, base_reward=$5, exp_reward=$6,
+     min_seconds=$7, daily_limit=$8, ip_daily_limit=$9, reset_mode=$10, reset_hours=$11, require_review=$12, active=$13
+     WHERE id=$14`,
+    [name.trim(), category_id||null, provider||'link4m', finalTargetUrl, parseInt(base_reward)||0,
+     parseInt(exp_reward)||1, parseInt(min_seconds)||15, parseInt(daily_limit)||2, parseInt(ip_daily_limit)||2,
+     finalResetMode, parseInt(reset_hours)||24, require_review === 'on' ? 1 : 0, active === 'on' ? 1 : 0, req.params.id]
+  );
+  res.redirect('/admin?ok=1#tasks');
 });
 router.post('/admin/tasks/:id/toggle-review', async (req, res) => {
   const t = await db.get('SELECT * FROM tasks WHERE id=$1', [req.params.id]);
@@ -422,10 +458,25 @@ router.post('/admin/shop-categories/:id/delete', async (req, res) => {
 
 // PRODUCTS (KHO HANG) + ORDERS
 router.post('/admin/products', async (req, res) => {
-  const { name, description, category_id, price, stock, delivery_mode } = req.body;
-  await db.run('INSERT INTO products (category_id,name,description,price,stock,delivery_mode,active,created_at) VALUES ($1,$2,$3,$4,$5,$6,1,$7)',
-    [category_id||null, name, description||'', parseInt(price)||0, parseInt(stock)||-1, delivery_mode==='pool'?'pool':'manual', Date.now()]);
+  const { name, description, category_id, price, stock, delivery_mode, require_note, note_label } = req.body;
+  await db.run('INSERT INTO products (category_id,name,description,price,stock,delivery_mode,active,created_at,require_note,note_label) VALUES ($1,$2,$3,$4,$5,$6,1,$7,$8,$9)',
+    [category_id||null, name, description||'', parseInt(price)||0, parseInt(stock)||-1, delivery_mode==='pool'?'pool':'manual', Date.now(),
+     require_note==='on'?1:0, (note_label||'').trim().slice(0,150)]);
   res.redirect('/admin#shop');
+});
+// SUA SAN PHAM: truoc day chi tao-moi/bat-tat/xoa duoc, khong sua lai duoc gi
+// sau khi tao (vd doi gia, doi mo ta, hay BAT/TAT + DOI NOI DUNG cau hoi
+// "yeu cau khach nhap thong tin" - tinh nang moi 2026-09 de hoi vd username
+// Roblox truoc khi vao hang cho duyet). Khong cho sua delivery_mode/kho o
+// day vi da co form rieng (them vao kho / cap nhat so luong) an toan hon.
+router.post('/admin/products/:id/edit', async (req, res) => {
+  const { name, description, category_id, price, require_note, note_label } = req.body;
+  if (!name || !name.trim()) return res.redirect('/admin?error=Thiếu tên sản phẩm#shop');
+  await db.run(
+    `UPDATE products SET name=$1, description=$2, category_id=$3, price=$4, require_note=$5, note_label=$6 WHERE id=$7`,
+    [name.trim(), description||'', category_id||null, parseInt(price)||0, require_note==='on'?1:0, (note_label||'').trim().slice(0,150), req.params.id]
+  );
+  res.redirect('/admin?ok=1#shop');
 });
 router.post('/admin/products/:id/toggle', async (req, res) => {
   const p = await db.get('SELECT * FROM products WHERE id=$1', [req.params.id]);
@@ -455,13 +506,24 @@ router.post('/admin/products/:id/stock', async (req, res) => {
   }
   res.redirect('/admin?ok=1#shop');
 });
-// XOA SAN PHAM: chi cho xoa neu chua tung co ai mua (con don hang tham chieu
-// toi) - tranh lam "mo coi" lich su don hang cua khach. Neu da co nguoi mua,
-// chi nen Tat (an di) thay vi Xoa.
+// XOA SAN PHAM:
+//
+// VA LOI DA SUA (2026-09, "khong xoa duoc san pham"): truoc day BLOCK HOAN
+// TOAN neu con BAT KY don hang nao (ke ca da 'completed'/'rejected' tu lau),
+// vi cac cau query hien thi lich su dung INNER JOIN products - xoa san pham
+// se lam don hang "mo coi", JOIN khong khop nua nen BIEN MAT khoi lich su.
+// Nay da doi toan bo query lien quan sang LEFT JOIN + luu san "chup" ten san
+// pham vao cot orders.product_name luc dat hang (xem migration trong db.js),
+// nen xoa han san pham KHONG con lam mat lich su don hang cu nua - cho phep
+// xoa binh thuong.
+// CHI con 1 dieu kien chan: don hang dang o trang thai 'pending' (CHUA xu ly
+// xong) - xoa san pham luc nay se lam mat dau vet de admin biet phai giao gi
+// cho khach, nen bat buoc xu ly (Gui & Hoan tat / Huy & hoan tien) o muc "Don
+// hang cho xu ly" truoc khi xoa duoc.
 router.post('/admin/products/:id/delete', async (req, res) => {
-  const inUse = await db.get('SELECT COUNT(*)::int as c FROM orders WHERE product_id=$1', [req.params.id]);
-  if (inUse.c > 0) {
-    return res.redirect(`/admin?error=Không thể xóa: đã có ${inUse.c} đơn hàng của sản phẩm này (dùng nút Tắt thay vì Xóa để giữ lịch sử)#shop`);
+  const pending = await db.get("SELECT COUNT(*)::int as c FROM orders WHERE product_id=$1 AND status='pending'", [req.params.id]);
+  if (pending.c > 0) {
+    return res.redirect(`/admin?error=Không thể xóa: còn ${pending.c} đơn hàng ĐANG CHỜ XỬ LÝ của sản phẩm này (xử lý xong ở mục "Đơn hàng chờ xử lý" rồi mới xóa được)#shop`);
   }
   await db.run('DELETE FROM product_stock WHERE product_id=$1', [req.params.id]);
   await db.run('DELETE FROM products WHERE id=$1', [req.params.id]);
@@ -578,7 +640,13 @@ router.post('/admin/settings', async (req, res) => {
   const fields = ['weekly_reward_1','weekly_reward_2','weekly_reward_3','withdraw_min','withdraw_notice',
     'withdraw_fee_rookie','withdraw_fee_silver','withdraw_fee_gold','withdraw_fee_platinum','withdraw_fee_diamond','withdraw_fee_legend',
     'topup_notice','topup_guide','admin_bank',
-    'ranking_enabled','referral_enabled','referral_ranking_enabled','vcoin_lockdays'];
+    'ranking_enabled','referral_enabled','referral_ranking_enabled','vcoin_lockdays',
+    // Thuong Top 1/2/3 BXH gioi thieu thang - da duoc lib/referral.js +
+    // lib/rewardCron.js doc tu truoc nhung thieu o nhap tren giao dien (xem
+    // giai thich o views/admin.ejs).
+    'referral_reward_1','referral_reward_2','referral_reward_3',
+    // Chong VPN/Proxy/Hosting/mang di dong (4G/3G) - xem lib/ipIntel.js
+    'ipintel_enabled','ipintel_hold_vpn','ipintel_hold_mobile'];
   for (const f of fields) {
     if (req.body[f] !== undefined) await db.run('INSERT INTO settings (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2', [f, req.body[f]]);
   }

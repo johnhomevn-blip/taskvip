@@ -103,9 +103,46 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
               </form>
             </td>
             <td><%if(t.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
-            <td style="display:flex;gap:4px">
+            <td style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn btn-sm btn-outline" type="button" onclick="document.getElementById('edit-task-<%=t.id%>').style.display=document.getElementById('edit-task-<%=t.id%>').style.display==='none'?'table-row':'none'">✏️ Sửa</button>
               <form method="POST" action="/admin/tasks/<%=t.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=t.active?'Tắt':'Bật'%></button></form>
               <form method="POST" action="/admin/tasks/<%=t.id%>/delete" onsubmit="return confirm('Xóa nhiệm vụ? Lịch sử cũng bị xóa.')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
+            </td>
+          </tr>
+          <tr id="edit-task-<%=t.id%>" style="display:none">
+            <td colspan="10" style="background:rgba(255,255,255,0.02)">
+              <form method="POST" action="/admin/tasks/<%=t.id%>/edit" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:10px 0">
+                <input name="name" placeholder="Tên nhiệm vụ" value="<%=t.name%>" style="<%=inp%>" required>
+                <select name="category_id" style="<%=sel%>">
+                  <option value="">-- Không có danh mục --</option>
+                  <%categories.forEach(c=>{%><option value="<%=c.id%>" <%=String(t.category_id)===String(c.id)?'selected':''%>><%=c.icon%> <%=c.name%></option><%})%>
+                </select>
+                <select name="provider" style="<%=sel%>">
+                  <%providers.forEach(p=>{%><option value="<%=p.name%>" <%=t.provider===p.name?'selected':''%>><%=p.name%></option><%})%>
+                </select>
+                <input name="target_url" placeholder="URL đích" value="<%=t.target_url%>" style="<%=inp%>">
+                <input name="base_reward" type="number" placeholder="Thưởng Ncoin" value="<%=t.base_reward%>" style="<%=inp%>" required>
+                <input name="exp_reward" type="number" placeholder="EXP" value="<%=t.exp_reward%>" style="<%=inp%>">
+                <input name="min_seconds" type="number" placeholder="Giây tối thiểu" value="<%=t.min_seconds%>" style="<%=inp%>">
+                <input name="daily_limit" type="number" placeholder="Lượt/user/(chu kỳ)" value="<%=t.daily_limit%>" style="<%=inp%>">
+                <input name="ip_daily_limit" type="number" placeholder="Lượt/IP/(chu kỳ)" value="<%=t.ip_daily_limit%>" style="<%=inp%>">
+                <select name="reset_mode" style="<%=sel%>">
+                  <option value="daily" <%=t.reset_mode==='daily'?'selected':''%>>Reset cố định 00:00</option>
+                  <option value="rolling" <%=t.reset_mode==='rolling'?'selected':''%>>Reset theo giờ (từ lần vượt gần nhất)</option>
+                </select>
+                <input name="reset_hours" type="number" placeholder="Số giờ (nếu chọn rolling)" value="<%=t.reset_hours%>" style="<%=inp%>">
+                <select name="active" style="<%=sel%>">
+                  <option value="on" <%=t.active?'selected':''%>>🟢 Bật (đang hoạt động)</option>
+                  <option value="off" <%=!t.active?'selected':''%>>🔴 Tắt</option>
+                </select>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);grid-column:1/-1">
+                  <input type="checkbox" name="require_review" <%=t.require_review?'checked':''%> style="width:auto"> Nhà cung cấp này yêu cầu IP chất lượng - luôn đưa vào "chờ duyệt"
+                </label>
+                <div style="grid-column:1/-1;display:flex;gap:8px">
+                  <button class="btn btn-primary" type="submit">💾 Lưu thay đổi</button>
+                  <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-task-<%=t.id%>').style.display='none'">Hủy</button>
+                </div>
+              </form>
             </td>
           </tr>
           <%})%>
@@ -270,6 +307,10 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <option value="pool">Giao tự động (từ kho có sẵn)</option>
           </select>
           <input name="stock" type="number" placeholder="Kho (chỉ dùng nếu giao thủ công, -1=∞)" value="-1" style="<%=inp%>">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);grid-column:1/-1">
+            <input type="checkbox" name="require_note" style="width:auto"> Bắt khách nhập thông tin trước khi đặt (VD: username Roblox)
+          </label>
+          <input name="note_label" placeholder="Hỏi khách nhập gì? (VD: Nhập username Roblox của bạn)" style="<%=inp%>;grid-column:1/-1">
           <button class="btn btn-primary" type="submit" style="grid-column:1/-1">➕ Thêm sản phẩm</button>
         </form>
         <div style="font-size:11px;color:var(--text2);margin-top:8px">💡 "Giao tự động": sau khi tạo sản phẩm, cuộn xuống bảng bên dưới để dán danh sách tài khoản/thông tin vào kho (mỗi dòng 1 món hàng) - hệ thống sẽ tự động giao 1 dòng cho khách ngay khi họ mua.</div>
@@ -283,6 +324,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <div>
               <div><b><%=o.username%></b> mua <b><%=o.pname%></b> x<%=o.quantity||1%> <span style="font-size:11px;color:var(--text2)">(mã <%=o.order_code%>)</span></div>
               <div style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(o.created_at)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+              <%if(o.note){%><div style="font-size:12.5px;margin-top:4px;padding:6px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);border-radius:8px;color:#93c5fd">📝 Khách nhập: <b><%=o.note%></b></div><%}%>
             </div>
             <div><%if(o.price_ncoin>0){%><span class="coin-wrap"><span class="ni sm">N</span><%=o.price_ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span><%}%><%if(o.price_vcoin>0){%><span class="coin-wrap"><span class="vi sm">V</span><%=o.price_vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span><%}%></div>
           </div>
@@ -301,7 +343,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
       <div class="card">
         <div class="card-title">📋 Danh sách sản phẩm</div>
         <table>
-          <tr><th>Tên</th><th>Danh mục</th><th>Kiểu giao</th><th>Giá</th><th>Kho</th><th>Trạng thái</th><th></th></tr>
+          <tr><th>Tên</th><th>Danh mục</th><th>Kiểu giao</th><th>Giá</th><th>Kho</th><th>Yêu cầu nhập</th><th>Trạng thái</th><th></th></tr>
           <%products.forEach(p=>{%>
           <tr>
             <td><%=p.name%></td>
@@ -309,14 +351,39 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><%if(p.delivery_mode==='pool'){%><span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981">Tự động</span><%}else{%><span class="badge" style="background:rgba(156,163,175,0.15);color:#9ca3af">Thủ công</span><%}%></td>
             <td><span class="coin-wrap"><%=(p.price||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</span></td>
             <td><%if(p.delivery_mode==='pool'){%><%=p.pool_available%> sẵn có<%}else{%><%=p.stock===-1?'∞':p.stock%><%}%></td>
+            <td style="font-size:11px">
+              <%if(p.require_note){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📝 <%=p.note_label||'Có'%></span><%}else{%><span style="color:var(--text2)">Không</span><%}%>
+            </td>
             <td><%if(p.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
             <td style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn btn-sm btn-outline" type="button" onclick="document.getElementById('edit-prod-<%=p.id%>').style.display=document.getElementById('edit-prod-<%=p.id%>').style.display==='none'?'table-row':'none'">✏️ Sửa</button>
               <form method="POST" action="/admin/products/<%=p.id%>/toggle"><button class="btn btn-sm btn-warning" type="submit"><%=p.active?'Tắt':'Bật'%></button></form>
-              <form method="POST" action="/admin/products/<%=p.id%>/delete" onsubmit="return confirm('Xóa sản phẩm này?')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
+              <form method="POST" action="/admin/products/<%=p.id%>/delete" onsubmit="return confirm('Xóa hẳn sản phẩm này? Lịch sử đơn hàng cũ vẫn được giữ (tên sản phẩm vẫn hiện đúng), chỉ không xóa được nếu còn đơn đang \'chờ xử lý\'.')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
+            </td>
+          </tr>
+          <tr id="edit-prod-<%=p.id%>" style="display:none">
+            <td colspan="8" style="background:rgba(255,255,255,0.02)">
+              <form method="POST" action="/admin/products/<%=p.id%>/edit" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:10px 0">
+                <input name="name" placeholder="Tên sản phẩm" value="<%=p.name%>" style="<%=inp%>" required>
+                <input name="description" placeholder="Mô tả" value="<%=p.description%>" style="<%=inp%>">
+                <select name="category_id" style="<%=sel%>">
+                  <option value="">-- Không danh mục --</option>
+                  <%shopCategories.forEach(c=>{%><option value="<%=c.id%>" <%=String(p.category_id)===String(c.id)?'selected':''%>><%=c.icon%> <%=c.name%></option><%})%>
+                </select>
+                <input name="price" type="number" placeholder="Giá (coin)" value="<%=p.price%>" style="<%=inp%>">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);grid-column:1/-1">
+                  <input type="checkbox" name="require_note" <%=p.require_note?'checked':''%> style="width:auto"> Bắt khách nhập thông tin trước khi đặt
+                </label>
+                <input name="note_label" placeholder="Hỏi khách nhập gì? (VD: Nhập username Roblox của bạn)" value="<%=p.note_label||''%>" style="<%=inp%>;grid-column:1/-1">
+                <div style="grid-column:1/-1;display:flex;gap:8px">
+                  <button class="btn btn-primary" type="submit">💾 Lưu thay đổi</button>
+                  <button class="btn btn-outline" type="button" onclick="document.getElementById('edit-prod-<%=p.id%>').style.display='none'">Hủy</button>
+                </div>
+              </form>
             </td>
           </tr>
           <%if(p.delivery_mode==='pool'){%>
-          <tr><td colspan="7" style="background:rgba(255,255,255,0.02)">
+          <tr><td colspan="8" style="background:rgba(255,255,255,0.02)">
             <form method="POST" action="/admin/products/<%=p.id%>/stock" style="display:flex;gap:6px;flex-wrap:wrap;padding:6px 0">
               <textarea name="items" placeholder="Dán danh sách, mỗi dòng 1 tài khoản (VD: user1@gmail.com|matkhau123)" rows="2" style="flex:1;min-width:220px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);resize:vertical"></textarea>
               <button class="btn btn-sm btn-success" type="submit">➕ Thêm vào kho</button>
@@ -327,7 +394,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
                o backend nhung TRUOC DAY KHONG CO form/nut nao goi toi no ca - nghia
                la san pham "giao thu cong" chi dat duoc so luong kho 1 LAN DUY NHAT
                luc tao, het hang la KHONG CO CACH NAO cap nhat lai qua giao dien. -->
-          <tr><td colspan="7" style="background:rgba(255,255,255,0.02)">
+          <tr><td colspan="8" style="background:rgba(255,255,255,0.02)">
             <form method="POST" action="/admin/products/<%=p.id%>/restock" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0">
               <span style="font-size:12px;color:var(--text2)">Cập nhật số lượng kho (-1 = không giới hạn):</span>
               <input name="stock" type="number" placeholder="Số lượng mới" value="<%=p.stock%>" style="width:120px;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text)">
@@ -374,8 +441,17 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
               <option value="1" <%=settings.referral_ranking_enabled!=='0'?'selected':''%>>Bật</option>
               <option value="0" <%=settings.referral_ranking_enabled==='0'?'selected':''%>>Tắt</option>
             </select>
-            <div style="font-size:11px;color:var(--text2);margin-top:4px">Tắt riêng mục này: ẩn BXH giới thiệu + ngừng thưởng Top 1/2/3 hàng tháng, nhưng hoa hồng % (mục trên) vẫn chạy bình thường nếu đang bật. Không dồn thưởng khi bật lại.</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px">Tắt riêng mục này: toàn bộ khối "Đua Top giới thiệu" biến mất hẳn khỏi trang /referral (không chỉ ẩn số liệu) + ngừng thưởng Top 1/2/3 hàng tháng, nhưng hoa hồng % (mục trên) vẫn chạy bình thường nếu đang bật. Không dồn thưởng khi bật lại.</div>
           </div>
+          <!-- VA LOI DA SUA (2026-09, "chua co cho set thuong BXH gioi thieu"):
+               truoc day cac cot settings referral_reward_1/2/3 DA TON TAI va
+               DA DUOC lib/referral.js + lib/rewardCron.js doc/dung khi trao
+               thuong Top 1/2/3 hang thang - nhung KHONG CO O NAO tren giao
+               dien admin de nhap gia tri, nen mac dinh luon la 0 (khong bao
+               gio trao duoc gi du BXH dang bat). Them 3 o nhap con thieu. -->
+          <div class="fg"><label>Thưởng Top 1 giới thiệu/tháng (đ)</label><input name="referral_reward_1" type="number" value="<%=settings.referral_reward_1||0%>"></div>
+          <div class="fg"><label>Thưởng Top 2 giới thiệu/tháng (đ)</label><input name="referral_reward_2" type="number" value="<%=settings.referral_reward_2||0%>"></div>
+          <div class="fg"><label>Thưởng Top 3 giới thiệu/tháng (đ)</label><input name="referral_reward_3" type="number" value="<%=settings.referral_reward_3||0%>"></div>
           <button class="btn btn-primary" type="submit">💾 Lưu</button>
         </form>
       </div>
@@ -434,7 +510,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
       <div class="card">
         <div class="card-title">🕵️ Nhật ký IP vượt link (100 lượt gần nhất)</div>
         <table>
-          <tr><th>Thời gian</th><th>User</th><th>Nhiệm vụ</th><th>NCC</th><th>IP</th><th>Trạng thái</th><th>Cảnh báo</th></tr>
+          <tr><th>Thời gian</th><th>User</th><th>Nhiệm vụ</th><th>NCC</th><th>IP</th><th>VPN/Proxy/Mobile</th><th>Trạng thái</th><th>Cảnh báo</th></tr>
           <%ipMonitor.forEach(row=>{%>
           <tr>
             <td style="color:var(--text2);font-size:11px"><%=new Date(parseInt(row.created_at)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
@@ -442,6 +518,11 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td style="font-size:12px"><%=row.task_name%></td>
             <td><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600"><%=row.task_provider%></span></td>
             <td><span class="ip-badge"><%=row.ip_created||'—'%></span></td>
+            <td style="font-size:11px">
+              <%if(row.ip_is_vpn===1){%><span class="badge badge-danger">🛡️ VPN/Proxy</span><%}%>
+              <%if(row.ip_is_mobile===1){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c;margin-left:4px">📱 4G/3G</span><%}%>
+              <%if(row.ip_is_vpn!==1&&row.ip_is_mobile!==1){%><span style="color:var(--text2)"><%=row.ip_isp?row.ip_isp:(row.status==='pending'?'chưa xác nhận':'—')%></span><%}%>
+            </td>
             <td>
               <%if(row.status==='completed'){%><span class="badge badge-success">Hoàn thành</span>
               <%}else if(row.status==='expired'){%><span class="badge">Hết hạn</span>
@@ -470,6 +551,49 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
     <!-- BAO MAT -->
     <div class="tab-panel" id="tab-security">
       <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Cầu dao tạm dừng xác nhận nhiệm vụ khi Ncoin/giờ tăng đột biến, và tự động đưa nhiệm vụ của tài khoản nghi ngờ farm vào hàng chờ duyệt — không tự khóa/chặn ai, admin luôn là người quyết định cuối cùng ở đây.</div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🔎 Chẩn đoán IP thật của server</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-bottom:8px">Nếu IP hiển thị ở trang Nhiệm vụ không đúng với IP thật của người dùng (ví dụ luôn hiện 1 IP giống nhau cho mọi người, hoặc khác với whatismyip.com), khả năng cao là do 2 biến môi trường <code>TRUST_CF_HEADER</code> và <code>CANONICAL_HOST</code> trên Railway chưa được đặt đúng (xem giải thích chi tiết trong file <code>lib/ip.js</code>). Bảng dưới đây cho biết chính xác server đang thấy gì từ request này:</div>
+        <table>
+          <tr><th>Mục</th><th>Giá trị</th></tr>
+          <tr><td>IP server đang dùng (getClientIp)</td><td><span class="ip-badge"><%=ipDiag.used%></span></td></tr>
+          <tr><td>Header <code>cf-connecting-ip</code> (Cloudflare gửi)</td><td><%=ipDiag.cfHeader||'— (không có)'%></td></tr>
+          <tr><td>Header <code>x-forwarded-for</code></td><td><%=ipDiag.xff||'— (không có)'%></td></tr>
+          <tr><td>req.ip (Express, sau trust proxy)</td><td><%=ipDiag.reqIp%></td></tr>
+          <tr><td>Env TRUST_CF_HEADER</td><td><%if(ipDiag.trustCf){%><span class="badge badge-success">Đã bật</span><%}else{%><span class="badge badge-danger">CHƯA bật</span><%}%></td></tr>
+          <tr><td>Env CANONICAL_HOST</td><td><%if(ipDiag.canonicalHost){%><span class="badge badge-success"><%=ipDiag.canonicalHost%></span><%}else{%><span class="badge badge-danger">CHƯA đặt</span><%}%></td></tr>
+        </table>
+        <%if(!ipDiag.trustCf||!ipDiag.canonicalHost){%>
+        <div class="alert" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#fbbf24;margin-top:10px">⚠️ Nếu web đang chạy sau Cloudflare + Railway (2 lớp proxy chồng nhau), cần đặt CẢ HAI biến môi trường trên Railway thì IP hiển thị mới chính xác là IP thật của người dùng: <code>TRUST_CF_HEADER=1</code> và <code>CANONICAL_HOST=4ummo.com</code> (đổi thành đúng domain bạn dùng qua Cloudflare). Thiếu 1 trong 2 thì IP hiển thị vẫn có thể là IP của lớp trung gian (Cloudflare/Railway), giống nhau cho mọi người.</div>
+        <%}%>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🌐 Chống VPN/Proxy/Hosting & mạng di động (4G/3G)</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-bottom:10px">Tự động tra cứu IP của người vượt link (qua ip-api.com, có cache 24h) để phát hiện VPN/Proxy/Hosting hoặc mạng di động — nhiều nhà cung cấp link rút gọn cấm dùng các mạng này. Giống mọi lớp chống gian lận khác của hệ thống: KHÔNG tự động từ chối, chỉ đưa vào "chờ duyệt" để admin tự quyết.</div>
+        <form method="POST" action="/admin/settings">
+          <div class="fg"><label>Bật tính năng tra cứu IP</label>
+            <select name="ipintel_enabled">
+              <option value="1" <%=settings.ipintel_enabled!=='0'?'selected':''%>>Bật</option>
+              <option value="0" <%=settings.ipintel_enabled==='0'?'selected':''%>>Tắt</option>
+            </select>
+          </div>
+          <div class="fg"><label>Giữ lại chờ duyệt nếu phát hiện VPN/Proxy/Hosting</label>
+            <select name="ipintel_hold_vpn">
+              <option value="1" <%=settings.ipintel_hold_vpn!=='0'?'selected':''%>>Bật</option>
+              <option value="0" <%=settings.ipintel_hold_vpn==='0'?'selected':''%>>Tắt</option>
+            </select>
+          </div>
+          <div class="fg"><label>Giữ lại chờ duyệt nếu phát hiện mạng di động (4G/3G)</label>
+            <select name="ipintel_hold_mobile">
+              <option value="1" <%=settings.ipintel_hold_mobile!=='0'?'selected':''%>>Bật</option>
+              <option value="0" <%=settings.ipintel_hold_mobile==='0'?'selected':''%>>Tắt</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">💾 Lưu</button>
+        </form>
+      </div>
 
       <div class="card" style="margin-bottom:16px">
         <div class="card-title">⚡ Cầu dao Ncoin/giờ</div>
@@ -521,7 +645,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><b><%=a.username%></b></td>
             <td style="font-size:12px"><%=a.task_name%></td>
             <td><%=a.reward_actual.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
-            <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📶 Cần IP chất lượng</span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
+            <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📶 Cần IP chất lượng</span><%}else if(a.held_reason==='vpn_proxy'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🛡️ VPN/Proxy<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else if(a.held_reason==='mobile_network'){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c">📱 Mạng 4G/3G<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
             <td style="font-size:11px;color:var(--text2);max-width:220px"><%=a.fraud_reason||'—'%></td>
             <td style="white-space:nowrap">
               <form method="POST" action="/admin/attempts/<%=a.id%>/approve" style="display:inline"><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" type="submit">✅ Duyệt</button></form>

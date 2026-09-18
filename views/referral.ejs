@@ -58,9 +58,7 @@
   <div style="font-size:11px;color:var(--text2);margin-top:10px">⚠️ Khi đã đạt 1 bậc, tỷ lệ hoa hồng được giữ nguyên vĩnh viễn cho bạn dù sau này số người giới thiệu thay đổi.</div>
 </div>
 
-<%if(!rankingEnabled){%>
-<div class="card" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">🎁</div><div style="color:var(--text2)">Tính năng bảng xếp hạng giới thiệu theo tháng đang tắt. Bạn vẫn nhận hoa hồng bình thường.</div></div>
-<%}else{%>
+<%if(rankingEnabled){%>
 <div class="multiplier-bar" style="margin-bottom:16px">
   <div><div class="mult-lbl">Tháng kết thúc sau</div><div class="mult-val" id="rc" style="font-size:22px">--</div></div>
   <div style="text-align:right"><div class="mult-lbl">Vị trí của bạn tháng này</div><div style="font-size:22px;font-weight:700;color:var(--accent2)">#<%=myRank||'—'%></div></div>

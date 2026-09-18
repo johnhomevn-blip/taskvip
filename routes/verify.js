@@ -4,6 +4,7 @@ const db = require('../db');
 const token = require('../lib/token');
 const breaker = require('../lib/breaker');
 const fraud = require('../lib/fraud');
+const ipIntel = require('../lib/ipIntel');
 const { checkReferer } = require('../lib/refererCheck');
 const { logSecurityEvent } = require('../lib/securityLog');
 const { creditAttemptReward, insertPendingTransaction } = require('../lib/attemptFlow');
@@ -63,6 +64,23 @@ router.get('/verify', async (req, res) => {
   // ============================================================
   const breakerResult = await breaker.evaluateAndTrip(attempt.reward_actual, { ip });
   let holdReason = null;
+
+  // ============================================================
+  // CHONG VPN/PROXY/HOSTING/MANG DI DONG (2026-09): xem giai thich chi tiet
+  // trong lib/ipIntel.js. Day la lop kiem tra THU 4, doc lap voi 3 lop cu -
+  // cung chi GIU LAI cho admin duyet (KHONG tu choi cung), dung nguyen tac
+  // xuyen suot cua he thong. Chi chay khi admin BAT trong Cai dat > Bao mat.
+  // Ket qua (co phai VPN/proxy/hosting/mobile khong, ISP gi) duoc luu lai
+  // vao chinh dong task_attempts nay de admin xem duoc khi duyet tay.
+  // ============================================================
+  const settingsRow = await db.q("SELECT key,value FROM settings WHERE key IN ('ipintel_enabled','ipintel_hold_vpn','ipintel_hold_mobile')");
+  const is = {}; settingsRow.forEach(r => is[r.key] = r.value);
+  const ipIntelEnabled = is.ipintel_enabled === '1';
+  let intel = null;
+  if (ipIntelEnabled) {
+    intel = await ipIntel.checkIp(ip);
+  }
+
   if (task.require_review) {
     // Nha cung cap nay yeu cau IP chat luong (kiem tra tay 100%, khong co du
     // lieu tin cay de tu dong doan IP tot/xau mien phi) - LUON giu lai du
@@ -73,6 +91,18 @@ router.get('/verify', async (req, res) => {
     // luong Ncoin cua cac nhiem vu loai nay khi tinh nguong).
   } else if (breakerResult.tripped) {
     holdReason = 'breaker';
+  } else if (intel && intel.ok && intel.isProxy && is.ipintel_hold_vpn !== '0') {
+    holdReason = 'vpn_proxy';
+    await logSecurityEvent('vpn_proxy_detected', {
+      ip, userId: attempt.user_id,
+      detail: `Lượt vượt link #${tid} (${task.name}): phát hiện IP thuộc VPN/Proxy/Hosting (ISP: ${intel.isp || intel.org || 'không rõ'})`,
+    });
+  } else if (intel && intel.ok && intel.isMobile && is.ipintel_hold_mobile !== '0') {
+    holdReason = 'mobile_network';
+    await logSecurityEvent('mobile_network_detected', {
+      ip, userId: attempt.user_id,
+      detail: `Lượt vượt link #${tid} (${task.name}): phát hiện IP thuộc mạng di động 4G/3G (ISP: ${intel.isp || 'không rõ'})`,
+    });
   } else {
     const risk = await fraud.evaluateUserRisk(attempt.user_id, { ip, fingerprint: attempt.fingerprint, userAgent: req.headers['user-agent'] });
     if (risk.flagged) {
@@ -103,8 +133,10 @@ router.get('/verify', async (req, res) => {
     // goi song song sau do se thay rowCount=0 va bi tu choi - khong the nhan
     // ban phan thuong nhieu lan chi tu 1 lan vuot link that.
     const upd = await client.query(
-      "UPDATE task_attempts SET status=$1, completed_at=$2, ip_verified=$3, held_reason=$4 WHERE id=$5 AND status='pending'",
-      [finalStatus, Date.now(), ip, holdReason || '', tid]
+      "UPDATE task_attempts SET status=$1, completed_at=$2, ip_verified=$3, held_reason=$4, ip_is_vpn=$5, ip_is_mobile=$6, ip_isp=$7 WHERE id=$8 AND status='pending'",
+      [finalStatus, Date.now(), ip, holdReason || '',
+       intel ? (intel.isProxy ? 1 : 0) : null, intel ? (intel.isMobile ? 1 : 0) : null, intel ? (intel.isp || intel.org || '') : null,
+       tid]
     );
     if (upd.rowCount === 0) {
       // Da co request khac xu ly xong attempt nay truoc (hoac da het han) -> dung lai, khong cong thuong 2 lan
@@ -119,6 +151,10 @@ router.get('/verify', async (req, res) => {
         ? 'chưa xác nhận được bạn đã đi qua trang rút gọn link'
         : holdReason === 'quality_ip'
         ? 'nhà cung cấp yêu cầu kiểm tra IP chất lượng trước khi ghi nhận'
+        : holdReason === 'vpn_proxy'
+        ? 'phát hiện đang dùng VPN/Proxy - vui lòng tắt và làm lại nếu muốn được duyệt nhanh hơn'
+        : holdReason === 'mobile_network'
+        ? 'phát hiện đang dùng mạng di động (4G/3G) - vui lòng đổi sang Wi-Fi nếu muốn được duyệt nhanh hơn'
         : 'tài khoản có dấu hiệu cần xác minh thêm';
       await insertPendingTransaction(client, { attempt, task, reasonLabel });
     } else {

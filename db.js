@@ -273,6 +273,13 @@ async function init() {
     INSERT INTO settings VALUES ('withdraw_fee_diamond','1000') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('withdraw_fee_legend','0') ON CONFLICT DO NOTHING;
 
+    -- Chong VPN/Proxy/Hosting/mang di dong (xem lib/ipIntel.js). Mac dinh
+    -- BAT san (nguoi dung yeu cau tinh nang nay ngay khi trien khai) nhung
+    -- admin co the tat bat cu luc nao o Cai dat > Bao mat neu thay khong hop.
+    INSERT INTO settings VALUES ('ipintel_enabled','1') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('ipintel_hold_vpn','1') ON CONFLICT DO NOTHING;
+    INSERT INTO settings VALUES ('ipintel_hold_mobile','1') ON CONFLICT DO NOTHING;
+
     INSERT INTO settings VALUES ('referral_enabled','1') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('referral_ranking_enabled','1') ON CONFLICT DO NOTHING;
     INSERT INTO settings VALUES ('referral_threshold_2','51') ON CONFLICT DO NOTHING;
@@ -350,6 +357,39 @@ async function init() {
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS category_id INTEGER;
     ALTER TABLE tasks ADD COLUMN IF NOT EXISTS ip_daily_limit INTEGER DEFAULT 2;
     ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS fee INTEGER DEFAULT 0;
+    -- VA LOI DA SUA (2026-09, "khong xoa duoc san pham da co don hang"): truoc
+    -- day route xoa san pham CHAN HOAN TOAN neu con don hang tham chieu toi,
+    -- vi cac cau SELECT hien thi don hang dung JOIN products (INNER JOIN) de
+    -- lay ten san pham - neu xoa san pham, JOIN nay se khong khop nua va DON
+    -- HANG DO BIEN MAT KHOI LICH SU (ca trang "Don cua toi" cua user lan danh
+    -- sach cho admin). De cho phep xoa that su ma khong mat lich su, luu san
+    -- "chup" ten san pham vao chinh dong orders luc dat hang - sau nay du
+    -- san pham goc co bi xoa, lich su van hien dung ten qua cot nay (xem
+    -- COALESCE trong cac cau query o routes/shop.js va routes/admin.js).
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS product_name TEXT;
+    UPDATE orders SET product_name = (SELECT name FROM products WHERE products.id = orders.product_id)
+      WHERE product_name IS NULL;
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS ip_is_vpn INTEGER;
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS ip_is_mobile INTEGER;
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS ip_isp TEXT;
+    CREATE TABLE IF NOT EXISTS ip_intel_cache (
+      ip TEXT PRIMARY KEY,
+      is_proxy INTEGER NOT NULL DEFAULT 0,
+      is_hosting INTEGER NOT NULL DEFAULT 0,
+      is_mobile INTEGER NOT NULL DEFAULT 0,
+      isp TEXT DEFAULT '',
+      org TEXT DEFAULT '',
+      ok INTEGER NOT NULL DEFAULT 1,
+      checked_at BIGINT NOT NULL
+    );
+    -- YEU CAU KHACH NHAP THONG TIN LUC DAT HANG (2026-09, vd username Roblox
+    -- de admin biet giao vao dau) - bat/tat va doi noi dung hoi duoc TUNG
+    -- SAN PHAM rieng qua 2 cot nay (xem form Them/Sua san pham trong
+    -- views/admin.ejs va logic bat buoc nhap o routes/shop.js). Gia tri
+    -- khach nhap duoc luu vao cot orders.note co san tu truoc (chi la truoc
+    -- day chua co noi nao ghi vao no).
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS require_note INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS note_label TEXT DEFAULT '';
   `);
 
   // Don dep cac dong providers bi trung lap (bug cu do thieu rang buoc unique)
