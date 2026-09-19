@@ -7,3 +7,14 @@
     <path d="M20.5 7L11 20.5h5.5L15 29l9.5-13.5H19z" fill="#fff"/>
   </svg>
 </button>
+<script>
+// Tu bao cao IPv4 (2026-09) - api4.ipify.org CHI co ban ghi DNS IPv4 (khong
+// co AAAA) nen trinh duyet BAT BUOC phai ket noi bang IPv4 cho request nay,
+// du mang nguoi dung dang uu tien IPv6 cho trang web chinh - nho vay biet
+// duoc IPv4 that su cua ho de hien cho de doc, KHONG anh huong gi den trang
+// dang xem. Chay ngam, loi thi thoi (vd mang chi co IPv6 that, khong co
+// IPv4 nao ca) - khong lam gi anh huong den trai nghiem chinh.
+fetch('https://api4.ipify.org?format=json').then(r=>r.json()).then(d=>{
+  if (d && d.ip) fetch('/report-ipv4', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'ip='+encodeURIComponent(d.ip)});
+}).catch(()=>{});
+</script>

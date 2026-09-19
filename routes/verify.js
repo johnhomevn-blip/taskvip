@@ -1,5 +1,5 @@
 const express = require('express');
-const { getClientIp } = require('../lib/ip');
+const { getClientIp, ipMatchClause } = require('../lib/ip');
 const db = require('../db');
 const token = require('../lib/token');
 const breaker = require('../lib/breaker');
@@ -77,7 +77,11 @@ router.get('/verify', async (req, res) => {
   // KHONG neu ten/ID tai khoan kia (theo yeu cau rieng, tranh lo thong tin
   // giup ke gian tranh ne) - admin muon xem chi tiet tai khoan nao thi vao
   // tab "Giam sat IP" / trang "Xem IP" cua tung user, du lieu van day du o do.
-  const dupIp = await db.get('SELECT 1 FROM ip_user_map WHERE ip=$1 AND user_id!=$2 LIMIT 1', [ip, attempt.user_id]);
+  const dupIpMatch = ipMatchClause(1, ip);
+  const dupIp = await db.get(
+    `SELECT 1 FROM ip_user_map WHERE ${dupIpMatch.clause} AND user_id!=$${dupIpMatch.params.length + 1} LIMIT 1`,
+    [...dupIpMatch.params, attempt.user_id]
+  );
   const dupDevice = !dupIp && attempt.fingerprint
     ? await db.get('SELECT 1 FROM fp_user_map WHERE fingerprint=$1 AND user_id!=$2 LIMIT 1', [attempt.fingerprint, attempt.user_id])
     : null;

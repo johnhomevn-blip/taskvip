@@ -509,7 +509,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
 
     <!-- IP MONITOR -->
     <div class="tab-panel" id="tab-ipmonitor">
-      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Danh sách 100 lượt vượt link gần nhất kèm IP thật của user. Cột "Cảnh báo" đỏ nghĩa là IP này còn được dùng bởi tài khoản khác — dấu hiệu 1 người dùng nhiều tài khoản.</div>
+      <div class="alert alert-info" style="margin-bottom:12px">ℹ️ Danh sách 100 lượt vượt link gần nhất kèm IP thật của user. Cột "Cảnh báo" đỏ nghĩa là IP này còn được dùng bởi tài khoản khác — dấu hiệu 1 người dùng nhiều tài khoản. IP chính (badge) do Cloudflare xác thực, luôn đáng tin. Dòng "IPv4 (tự báo cáo)" bên dưới là IPv4 do chính trình duyệt người dùng tự gửi lên (hữu ích khi IP chính là IPv6 dài khó đọc) — chỉ để tham khảo, không dùng để chặn vì có thể bị giả mạo.</div>
       <div class="card">
         <div class="card-title">🕵️ Nhật ký IP vượt link (100 lượt gần nhất)</div>
         <table>
@@ -520,7 +520,10 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><b><%=row.username%></b></td>
             <td style="font-size:12px"><%=row.task_name%></td>
             <td><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600"><%=row.task_provider%></span></td>
-            <td><span class="ip-badge"><%=row.ip_created||'—'%></span></td>
+            <td>
+              <span class="ip-badge"><%=row.ip_created||'—'%></span>
+              <%if(row.ip_v4_hint){%><div style="margin-top:3px;font-size:11px;color:var(--text2)" title="IPv4 do trình duyệt người dùng tự báo cáo qua api4.ipify.org - KHÔNG được Cloudflare xác thực, chỉ mang tính tham khảo, có thể bị giả mạo">IPv4: <%=row.ip_v4_hint%> <span style="opacity:.6">(tự báo cáo)</span></div><%}%>
+            </td>
             <td style="font-size:11px">
               <%if(row.ip_is_vpn===1){%><span class="badge badge-danger">🛡️ VPN/Proxy</span><%}%>
               <%if(row.ip_is_mobile===1){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c;margin-left:4px">📱 4G/3G</span><%}%>

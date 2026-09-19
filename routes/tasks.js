@@ -1,5 +1,5 @@
 const express = require('express');
-const { getClientIp } = require('../lib/ip');
+const { getClientIp, ipMatchClause } = require('../lib/ip');
 const db = require('../db');
 const token = require('../lib/token');
 const { createShortLink } = require('../lib/shortener');
@@ -52,6 +52,20 @@ router.get('/tasks/blocked', (req, res) => {
   res.redirect('/tasks?error=' + encodeURIComponent(msg));
 });
 
+// NGUOI DUNG TU BAO CAO IPv4 (2026-09) - xem giai thich day du trong
+// db.js (migration cot ip_v4_hint) va script client trong
+// views/partials/topbar.ejs. Chi luu vao session (khong phai bang/cot bao
+// mat) vi day CHI la du lieu KHONG XAC THUC, do chinh trinh duyet nguoi
+// dung tu bao cao - de admin/user xem cho de doc, KHONG dung de chan gi ca.
+router.post('/report-ipv4', (req, res) => {
+  const ip = (req.body && req.body.ip || '').trim();
+  // Validate dinh dang IPv4 co ban - tranh luu rac neu script bi loi/gia mao
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(p => parseInt(p) <= 255)) {
+    req.session.clientIpv4 = ip;
+  }
+  res.status(204).end();
+});
+
 router.get('/tasks', async (req, res) => {
   const user = req.user;
 
@@ -84,7 +98,12 @@ router.get('/tasks', async (req, res) => {
   }));
   const uncategorized = tasksWithInfo.filter(t => !t.category_id);
 
-  res.render('tasks', { userIP: getClientIp(req), user, grouped, uncategorized, multiplier, secondsUntilReset, announcements,
+  // Uu tien hien IPv4 "tu bao cao" (session.clientIpv4, xem POST
+  // /report-ipv4 o tren) cho de doc/de nho hon IPv6 dai - neu chua kip bat
+  // duoc (script client chua chay xong, hoac mang nguoi dung chi co IPv6),
+  // hien tam IP thuc te (co the la IPv6) cho toi khi bat duoc.
+  const userIP = req.session.clientIpv4 || getClientIp(req);
+  res.render('tasks', { userIP, user, grouped, uncategorized, multiplier, secondsUntilReset, announcements,
     error: req.query.error || null, done: req.query.done || null });
 });
 
@@ -136,9 +155,10 @@ router.post('/tasks/:id/start', async (req, res) => {
   //      bao chan. Khong tao dong task_attempts nao ca (vi lam gi co link
   //      that de theo doi/het han) - hoan toan "mien phi", khong dung 1 chut
   //      tai nguyen/API nao cua nha cung cap.
+  const ipMatch = ipMatchClause(1, ip);
   const ipConflict = await db.get(
-    'SELECT 1 FROM ip_user_map WHERE ip=$1 AND user_id!=$2 LIMIT 1',
-    [ip, user.id]
+    `SELECT 1 FROM ip_user_map WHERE ${ipMatch.clause} AND user_id!=$${ipMatch.params.length + 1} LIMIT 1`,
+    [...ipMatch.params, user.id]
   );
   const fpConflict = (!ipConflict && fp)
     ? await db.get('SELECT 1 FROM fp_user_map WHERE fingerprint=$1 AND user_id!=$2 LIMIT 1', [fp, user.id])
@@ -187,9 +207,9 @@ router.post('/tasks/:id/start', async (req, res) => {
   const now = Date.now();
 
   const attempt = await db.get(
-    `INSERT INTO task_attempts (user_id,task_id,status,reward_actual,multiplier,created_at,expires_at,ip_created,fingerprint)
-     VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8) RETURNING id`,
-    [user.id, task.id, rewardActual, multiplier, now, now + ATTEMPT_TTL_MS, ip, fp]
+    `INSERT INTO task_attempts (user_id,task_id,status,reward_actual,multiplier,created_at,expires_at,ip_created,fingerprint,ip_v4_hint)
+     VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+    [user.id, task.id, rewardActual, multiplier, now, now + ATTEMPT_TTL_MS, ip, fp, req.session.clientIpv4 || null]
   );
 
   const sig = token.sign(attempt.id);

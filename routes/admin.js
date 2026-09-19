@@ -62,7 +62,7 @@ router.get('/admin', async (req, res) => {
 
   // Giam sat IP toan he thong: cac lan vuot link gan day + so tai khoan khac dung chung IP
   const ipMonitor = await db.q(`
-    SELECT ta.id, ta.ip_created, ta.fingerprint, ta.status, ta.created_at, ta.ip_is_vpn, ta.ip_is_mobile, ta.ip_isp,
+    SELECT ta.id, ta.ip_created, ta.fingerprint, ta.status, ta.created_at, ta.ip_is_vpn, ta.ip_is_mobile, ta.ip_isp, ta.ip_v4_hint,
     u.username, t.name as task_name, t.provider as task_provider,
     (SELECT COUNT(*) FROM ip_user_map WHERE ip=ta.ip_created AND user_id != ta.user_id) as other_accounts,
     (SELECT COUNT(*) FROM fp_user_map WHERE fingerprint=ta.fingerprint AND user_id != ta.user_id AND ta.fingerprint IS NOT NULL AND ta.fingerprint != '') as other_accounts_fp

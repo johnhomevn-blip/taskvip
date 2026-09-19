@@ -390,6 +390,18 @@ async function init() {
     -- day chua co noi nao ghi vao no).
     ALTER TABLE products ADD COLUMN IF NOT EXISTS require_note INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE products ADD COLUMN IF NOT EXISTS note_label TEXT DEFAULT '';
+    -- IPv4 "tu bao cao" (2026-09, theo yeu cau chu web: "muon thay ca IPv4
+    -- lan IPv6 trong admin") - lay bang cach trinh duyet nguoi dung tu goi 1
+    -- dich vu ngoai CHI CO ban ghi DNS IPv4 (api4.ipify.org, khong co ban ghi
+    -- AAAA) nen trinh duyet BAT BUOC phai ket noi qua IPv4 cho request do, du
+    -- may/mang ho dang uu tien IPv6 cho trang web chinh. Xem lib/ip.js va
+    -- route POST /report-ipv4 trong routes/tasks.js.
+    -- QUAN TRONG: gia tri nay la NGUOI DUNG TU BAO CAO qua script rieng, KHAC
+    -- voi ip_created/ip_verified (do Cloudflare xac nhan, dang tin cay tuyet
+    -- doi) - CHI dung de HIEN THI cho de doc + lam TIN HIEU PHU khi admin tu
+    -- xem xet, KHONG dung de tu dong chan/giu lai vi ke gian co the gia mao
+    -- gia tri nay qua devtools.
+    ALTER TABLE task_attempts ADD COLUMN IF NOT EXISTS ip_v4_hint TEXT;
   `);
 
   // Don dep cac dong providers bi trung lap (bug cu do thieu rang buoc unique)
