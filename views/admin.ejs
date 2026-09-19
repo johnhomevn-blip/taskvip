@@ -779,7 +779,8 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <input name="title" placeholder="Tiêu đề" style="flex:1;<%=inp%>" required>
             <input name="sort_order" type="number" placeholder="Thứ tự" style="width:80px;<%=inp%>" value="0">
           </div>
-          <textarea name="content" placeholder="Nội dung quy định..." rows="4" style="<%=inp%>;resize:vertical" required></textarea>
+          <textarea name="content" placeholder="Nội dung quy định..." rows="6" style="<%=inp%>;resize:vertical" required></textarea>
+          <div style="font-size:11px;color:var(--text3);line-height:1.6">Cú pháp: dòng thường = đoạn mở đầu · <code>- nội dung</code> = gạch đầu dòng · <code>**chữ đỏ**</code> = nhấn mạnh · dòng bắt đầu bằng <code>⚠ **Cảnh báo:** ...</code> = khung cảnh báo</div>
           <button class="btn btn-primary" style="width:fit-content" type="submit">➕ Thêm quy định</button>
         </form>
         <table>

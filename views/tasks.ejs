@@ -33,6 +33,24 @@
       </div>
     </div>
 
+    <div class="task-notes">
+      <div class="task-notes-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        Các lưu ý khi làm nhiệm vụ
+      </div>
+      <ol>
+        <li class="note-warn">Một số nhiệm vụ <strong>bắt buộc phải duyệt</strong> (có thể bị từ chối). Lý do: nếu nhà cung cấp không tính view của bạn thì Admin sẽ không cộng tiền.</li>
+        <li>Khi làm nhiệm vụ phải tuân theo các <a href="/regulations">quy định của website</a>!</li>
+        <li>Nếu trong quá trình làm nhiệm vụ mà bạn gặp lỗi thì hãy báo cho Admin kèm <strong>hình ảnh và video</strong> bắt buộc!</li>
+        <li>Ưu tiên làm nhiệm vụ ở đây, <strong>nghiêm cấm</strong> hình thức làm nhiều bên. Tránh các trường hợp vi phạm không đáng có xảy ra.</li>
+      </ol>
+      <div class="note-chips">
+        <span class="note-chip ok">Hoàn thành — Tiền tự động cộng</span>
+        <span class="note-chip wait">Chờ xử lý — Đã gửi duyệt</span>
+        <span class="note-chip no">Từ chối — Không cộng tiền</span>
+      </div>
+    </div>
+
     <%grouped.forEach(cat=>{if(!cat.tasks||cat.tasks.length===0)return;%>
     <div style="margin-bottom:20px">
       <div style="font-size:14px;font-weight:600;margin-bottom:10px"><%=cat.icon%> <%=cat.name%></div>

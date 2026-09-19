@@ -615,6 +615,26 @@ async function init() {
     CREATE INDEX IF NOT EXISTS idx_transactions_ref_attempt ON transactions (ref_attempt_id);
   `);
 
+  // Nap 8 quy dinh mac dinh (lib/defaultRegulations.js) vao bang regulations
+  // DUNG MOT LAN. Co "regulations_seed_v1" trong bang settings dam bao:
+  // deploy lai KHONG nhan ban quy dinh, va quy dinh admin da xoa khong tu
+  // quay lai. (Cung nguyen nhan bug danh muc bi nhan ban o tren - nen o day
+  // dung co danh dau thay vi doan bang cach dem so dong.)
+  const regSeeded = await pool.query("SELECT 1 FROM settings WHERE key='regulations_seed_v1'");
+  if (regSeeded.rows.length === 0) {
+    const defaultRegs = require('./lib/defaultRegulations');
+    for (let i = 0; i < defaultRegs.length; i++) {
+      const r = defaultRegs[i];
+      await pool.query(
+        `INSERT INTO regulations (title,content,sort_order,active,created_at)
+         SELECT $1::text,$2::text,$3::int,1,$4::bigint
+         WHERE NOT EXISTS (SELECT 1 FROM regulations WHERE title=$1::text)`,
+        [r.title, r.content, i + 1, Date.now()]
+      );
+    }
+    await pool.query("INSERT INTO settings VALUES ('regulations_seed_v1','1') ON CONFLICT DO NOTHING");
+  }
+
   console.log('Database san sang');
 }
 
