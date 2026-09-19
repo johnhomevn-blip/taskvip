@@ -16,16 +16,29 @@
       <div style="font-size:40px;margin-bottom:12px">📜</div>
       <div style="color:var(--text2)">Chưa có quy định nào. Admin sẽ cập nhật sớm.</div>
     </div>
+    <%}else{%>
+    <header class="rules-hero">
+      <h1>Luật chơi ở 4ummo</h1>
+      <p><%=regs.length%> điều ngắn gọn. Đọc một lần để không bị mất thưởng oan.</p>
+      <nav class="rules-toc" aria-label="Mục lục quy định">
+        <%regs.forEach((r,i)=>{%>
+        <a class="toc-chip" href="#dieu-<%=i+1%>"><b><%=String(i+1).padStart(2,'0')%></b><span><%=r.title%></span></a>
+        <%})%>
+      </nav>
+    </header>
+    <div class="rules-rail">
+      <%regs.forEach((r,i)=>{%>
+      <div class="rule-item" style="--i:<%=i%>">
+        <span class="rule-node" aria-hidden="true"></span>
+        <section class="rule-card" id="dieu-<%=i+1%>">
+          <span class="rule-num" aria-hidden="true"><%=String(i+1).padStart(2,'0')%></span>
+          <div class="rule-kicker">Điều <%=i+1%></div>
+          <h2 class="rule-title"><%=r.title%></h2>
+          <%- r.html %>
+        </section>
+      </div>
+      <%})%>
+    </div>
     <%}%>
-    <%regs.forEach((r)=>{%>
-    <section class="rule-card">
-      <h2 class="rule-title">
-        <svg class="rule-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span><%=r.title%></span>
-      </h2>
-      <%- r.html %>
-    </section>
-    <%})%>
   </div>
-</div>
 </body></html>

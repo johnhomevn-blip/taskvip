@@ -234,18 +234,36 @@ tr:last-child td{border-bottom:none}
 /* TURNSTILE */
 .turnstile-wrap{margin-bottom:14px;display:flex;justify-content:center}
 
-/* RULE CARDS - trang Quy dinh (the vien net dut, chu do nhan manh, khung canh bao) */
-.rule-card{background:rgba(239,68,68,0.05);border:2px dashed rgba(244,114,182,0.4);border-radius:16px;padding:20px 22px;margin-bottom:16px;max-width:860px}
-.rule-title{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--text);margin-bottom:12px}
-.rule-icon{flex-shrink:0;color:var(--accent2)}
-.rule-intro{font-size:14px;line-height:1.75;color:var(--text);margin-bottom:10px}
+/* RULES PAGE - trang Quy dinh: muc luc + duong ray danh so, chu nhan manh kieu but da quang,
+   khung canh bao co soc vach hazard */
+.rules-hero{max-width:860px;margin-bottom:26px}
+.rules-hero h1{font-size:26px;font-weight:800;line-height:1.2;color:var(--text);letter-spacing:-0.01em}
+.rules-hero p{font-size:14px;color:var(--text2);margin-top:6px}
+.rules-toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.toc-chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:5px 13px 5px 5px;border-radius:999px;background:var(--card);border:1px solid var(--card-border);color:var(--text2);font-size:12.5px;text-decoration:none;transition:border-color .2s,color .2s,transform .2s}
+.toc-chip b{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:rgba(244,114,182,0.16);color:#f9a8d4;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.toc-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toc-chip:hover{border-color:rgba(244,114,182,0.55);color:var(--text);transform:translateY(-1px)}
+.rules-rail{position:relative;max-width:860px;padding-left:34px}
+.rules-rail::before{content:'';position:absolute;left:8px;top:10px;bottom:10px;width:2px;border-radius:2px;background:linear-gradient(to bottom,rgba(244,114,182,0.7),rgba(124,58,237,0.5) 60%,rgba(124,58,237,0))}
+.rule-item{position:relative;margin-bottom:18px;animation:ruleIn .5s ease both;animation-delay:calc(var(--i,0) * 60ms)}
+.rule-node{position:absolute;left:-31px;top:24px;width:12px;height:12px;border-radius:50%;background:#f472b6;box-shadow:0 0 0 4px rgba(244,114,182,0.18),0 0 14px rgba(244,114,182,0.5)}
+.rule-card{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:20px 22px 18px;scroll-margin-top:110px}
+.rule-num{position:absolute;right:16px;top:-4px;font-size:84px;font-weight:800;line-height:1;color:transparent;-webkit-text-stroke:1px rgba(244,114,182,0.2);pointer-events:none;user-select:none}
+.rule-kicker{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#f9a8d4;margin-bottom:4px}
+.rule-title{font-size:18px;font-weight:700;line-height:1.35;color:var(--text);margin-bottom:12px;padding-right:64px}
+.rule-intro{font-size:14px;line-height:1.75;color:var(--text2);margin-bottom:10px}
 .rule-list{list-style:none;margin:0 0 12px;padding:0}
-.rule-list li{position:relative;padding-left:18px;margin-bottom:8px;font-size:14px;line-height:1.7;color:var(--text)}
-.rule-list li::before{content:'';position:absolute;left:3px;top:0.72em;width:6px;height:6px;border-radius:50%;background:#f87171}
-.rule-card strong{color:#f87171;font-weight:700}
-.rule-warn{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.28);border-radius:12px;padding:12px 14px;margin-top:14px}
-.rule-warn-title{font-size:13.5px;font-weight:700;color:#fca5a5;margin-bottom:3px}
-.rule-warn-text{font-size:13.5px;line-height:1.65;color:var(--text)}
+.rule-list li{position:relative;padding-left:20px;margin-bottom:8px;font-size:14px;line-height:1.7;color:var(--text2)}
+.rule-list li::before{content:'\203A';position:absolute;left:3px;top:-1px;font-size:20px;line-height:1.5;font-weight:700;color:#f472b6}
+.rule-card strong{color:var(--text);font-weight:700;padding:0 2px;border-radius:2px;background:linear-gradient(transparent 58%,rgba(244,114,182,0.32) 58%);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.rule-warn{position:relative;overflow:hidden;margin-top:14px;padding:12px 14px 12px 24px;border-radius:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25)}
+.rule-warn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:9px;background:repeating-linear-gradient(-45deg,#fbbf24 0 6px,#1c1917 6px 12px)}
+.rule-warn-title{font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#fbbf24;margin-bottom:3px}
+.rule-warn-text{font-size:13.5px;line-height:1.65;color:var(--text2)}
+.rule-warn strong{background:linear-gradient(transparent 58%,rgba(251,191,36,0.3) 58%)}
+@keyframes ruleIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.rule-item{animation:none}.toc-chip{transition:none}}
 
 /* TASK NOTES - khung luu y tren trang Nhiem vu */
 .task-notes{background:var(--card);border:1px solid var(--card-border);border-left:3px solid var(--primary);border-radius:14px;padding:16px 20px;margin-bottom:20px}
@@ -263,8 +281,16 @@ tr:last-child td{border-bottom:none}
 .dot.wait{background:#f59e0b}
 .dot.no{background:#ef4444}
 @media(max-width:768px){
+  .rules-hero h1{font-size:22px}
+  .rules-toc{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+  .rules-toc::-webkit-scrollbar{display:none}
+  .toc-chip{flex-shrink:0}
+  .rules-rail{padding-left:28px}
+  .rule-node{left:-26px}
+  .rules-rail::before{left:4px}
   .rule-card{padding:16px 14px}
-  .rule-title{font-size:16px}
+  .rule-title{font-size:16px;padding-right:44px}
+  .rule-num{font-size:56px;right:10px}
   .task-notes{padding:14px}
   .tips-grid{grid-template-columns:1fr}
 }
