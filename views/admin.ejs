@@ -201,7 +201,10 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td style="color:#ef4444">+<%=(w.fee||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
             <td style="color:#10b981;font-weight:600"><%=(w.amount+(w.fee||0)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</td>
             <td><%=w.method%></td>
-            <td style="font-size:12px;color:var(--text2)"><%=w.detail%></td>
+            <td style="font-size:12px;color:var(--text2)">
+              <%=w.detail%>
+              <%if(w.dup_payment_count>0){%><div style="margin-top:4px"><span class="badge badge-danger">⚠️ Trùng thông tin nhận tiền với tài khoản khác</span></div><%}%>
+            </td>
             <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(w.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
             <td style="display:flex;gap:4px">
               <form method="POST" action="/admin/withdrawals/<%=w.id%>/approve"><button class="btn btn-sm btn-success" type="submit">✅</button></form>
@@ -671,7 +674,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><b><%=a.username%></b></td>
             <td style="font-size:12px"><%=a.task_name%></td>
             <td><%=a.reward_actual.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
-            <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📶 Cần IP chất lượng</span><%}else if(a.held_reason==='vpn_proxy'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🛡️ VPN/Proxy<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else if(a.held_reason==='mobile_network'){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c">📱 Mạng 4G/3G<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
+            <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='duplicate_ip'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🔁 Trùng IP với TK khác</span><%}else if(a.held_reason==='duplicate_device'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🔁 Trùng thiết bị với TK khác</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📶 Cần IP chất lượng</span><%}else if(a.held_reason==='vpn_proxy'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🛡️ VPN/Proxy<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else if(a.held_reason==='mobile_network'){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c">📱 Mạng 4G/3G<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
             <td style="font-size:11px;color:var(--text2);max-width:220px"><%=a.fraud_reason||'—'%></td>
             <td style="white-space:nowrap">
               <form method="POST" action="/admin/attempts/<%=a.id%>/approve" style="display:inline"><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" type="submit">✅ Duyệt</button></form>

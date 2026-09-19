@@ -4,6 +4,7 @@ const db = require('../db');
 const token = require('../lib/token');
 const { createShortLink } = require('../lib/shortener');
 const { getMultiplier, getSecondsUntilReset, getDayStart } = require('../lib/multiplier');
+const { logSecurityEvent } = require('../lib/securityLog');
 const router = express.Router();
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ATTEMPT_TTL_MS = 6 * 60 * 60 * 1000; // link ton tai 6 tieng truoc khi het han
@@ -37,6 +38,19 @@ function getTaskResetSince(task) {
   }
   return getDayStart();
 }
+
+// Diem den THAT SU khi nguoi dung bam "Xac minh va tiep tuc" tren trang /go
+// cho truong hop trung IP/thiet bi (xem giai thich day du trong POST
+// /tasks/:id/start o duoi) - CHI toi day moi thuc su hien thong bao chan,
+// dung luc ho vua bam nut, khong phai ngay tu luc vao trang. Khong ghi log
+// gi them o day (da ghi khi phat hien o buoc tao trang /go roi, tranh log
+// trung 2 lan cho cung 1 lan bam).
+router.get('/tasks/blocked', (req, res) => {
+  const msg = req.query.reason === 'device'
+    ? 'Thiết bị này đã được sử dụng ở tài khoản khác.'
+    : 'IP này đã được sử dụng ở tài khoản khác.';
+  res.redirect('/tasks?error=' + encodeURIComponent(msg));
+});
 
 router.get('/tasks', async (req, res) => {
   const user = req.user;
@@ -107,24 +121,39 @@ router.post('/tasks/:id/start', async (req, res) => {
     return res.redirect('/go/' + existing.id);
   }
 
-  // Kiem tra IP da dung boi tai khoan khac chua
+  // VA LOI DA SUA (2026-09, theo yeu cau chu web - 2 vong chinh sua):
+  //   1) Chan tu luc lay link (khong de tao link that roi moi chan luc xac
+  //      nhan) de KHONG lang phi luot goi API tao link that su cua nha cung
+  //      cap (co gioi han/tinh phi theo so link tao ra).
+  //   2) NHUNG van phai cho nguoi dung thay dung trang "Xac minh bao mat"
+  //      (/go) NHU BINH THUONG - KHONG redirect thang ve /tasks bao loi ngay
+  //      (se lo cho ke gian biet CHINH XAC luc nao bi phat hien, giup ho do
+  //      tim cach tranh ne nhanh hon). Nut "Xac minh va tiep tuc" tren trang
+  //      /go van hien ra binh thuong, ho van "xem" duoc trang nhu that - chi
+  //      la nut do KHONG tro toi link that cua nha cung cap (vi chua bao gio
+  //      goi API tao link that ca) ma tro ve 1 route noi bo cua chinh web
+  //      (/tasks/blocked) - CHI KHI HO BAM VAO nut do moi thuc su thay thong
+  //      bao chan. Khong tao dong task_attempts nao ca (vi lam gi co link
+  //      that de theo doi/het han) - hoan toan "mien phi", khong dung 1 chut
+  //      tai nguyen/API nao cua nha cung cap.
   const ipConflict = await db.get(
-    'SELECT user_id FROM ip_user_map WHERE ip=$1 AND user_id != $2 LIMIT 1',
+    'SELECT 1 FROM ip_user_map WHERE ip=$1 AND user_id!=$2 LIMIT 1',
     [ip, user.id]
   );
-  if (ipConflict) {
-    return res.redirect('/tasks?error=IP này đã được sử dụng bởi tài khoản khác. Không thể tạo link.');
-  }
-
-  // Kiem tra fingerprint thiet bi da dung boi tai khoan khac chua (backup cho truong hop doi IP)
-  if (fp) {
-    const fpConflict = await db.get(
-      'SELECT user_id FROM fp_user_map WHERE fingerprint=$1 AND user_id != $2 LIMIT 1',
-      [fp, user.id]
-    );
-    if (fpConflict) {
-      return res.redirect('/tasks?error=Thiết bị này đã được dùng bởi tài khoản khác. Không thể tạo link.');
-    }
+  const fpConflict = (!ipConflict && fp)
+    ? await db.get('SELECT 1 FROM fp_user_map WHERE fingerprint=$1 AND user_id!=$2 LIMIT 1', [fp, user.id])
+    : null;
+  if (ipConflict || fpConflict) {
+    const reason = ipConflict ? 'ip' : 'device';
+    await logSecurityEvent(ipConflict ? 'duplicate_ip_blocked' : 'duplicate_device_blocked', {
+      ip, userId: user.id,
+      detail: `Chặn lấy link nhiệm vụ "${task.name}": ${ipConflict ? 'IP' : 'Thiết bị'} này đang dùng chung với ít nhất 1 tài khoản khác (chưa tạo link thật, không tốn API)`,
+    });
+    return res.render('go', {
+      taskName: task.name,
+      shortUrl: `/tasks/blocked?reason=${reason}`,
+      user,
+    });
   }
 
   // Kiem tra gioi han IP theo nhiem vu (cung theo kieu reset rieng cua nhiem vu)

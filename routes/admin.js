@@ -28,7 +28,21 @@ router.get('/admin', async (req, res) => {
   const tasks = await db.q('SELECT t.*, c.name as cat_name FROM tasks t LEFT JOIN task_categories c ON c.id=t.category_id ORDER BY t.id DESC');
   const categories = await db.q('SELECT * FROM task_categories ORDER BY sort_order');
   const providers = await db.q('SELECT * FROM providers ORDER BY id');
-  const withdrawals = await db.q(`SELECT w.*, u.username FROM withdrawals w JOIN users u ON u.id=w.user_id WHERE w.status='pending' ORDER BY w.created_at ASC`);
+  // PHAT HIEN TRUNG THONG TIN NHAN TIEN GIUA 2 TAI KHOAN KHAC NHAU (2026-09,
+  // theo yeu cau chu web: "2 tai khoan ma trung thong tin thanh toan thi bao
+  // cho admin biet") - so sanh "detail" (da chuan hoa: bo khoang trang thua,
+  // khong phan biet hoa/thuong) voi TAT CA yeu cau rut tien tung co cua
+  // NGUOI DUNG KHAC (khong gioi han trang thai, ke ca da xu ly xong, vi
+  // trung thong tin nhan tien la dau hieu 1 nguoi dung nhieu tai khoan bat
+  // ke lan rut do da duyet hay chua). CHI DUA RA CANH BAO cho admin xem,
+  // KHONG tu dong tu choi/chan rut tien - admin tu quyet dinh.
+  const withdrawals = await db.q(`
+    SELECT w.*, u.username,
+      (SELECT COUNT(*)::int FROM withdrawals w2 WHERE w2.user_id != w.user_id
+        AND LOWER(TRIM(w2.method)) = LOWER(TRIM(w.method))
+        AND LOWER(TRIM(w2.detail)) = LOWER(TRIM(w.detail))
+        AND TRIM(w.detail) != '') as dup_payment_count
+    FROM withdrawals w JOIN users u ON u.id=w.user_id WHERE w.status='pending' ORDER BY w.created_at ASC`);
   // LEFT JOIN products (khong con INNER JOIN): don dang cho van hien ten qua
   // COALESCE(p.name, o.product_name) ke ca truong hop hy huu san pham bi xoa
   // trong luc don van con "pending" (xem migration cot product_name).

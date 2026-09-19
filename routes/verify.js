@@ -66,6 +66,23 @@ router.get('/verify', async (req, res) => {
   let holdReason = null;
 
   // ============================================================
+  // TRUNG IP/THIET BI VOI TAI KHOAN KHAC (2026-09, theo yeu cau chu web:
+  // "moi user chi 1 tai khoan, khong duoc gian lan"): truoc day 2 tin hieu
+  // nay CHI la 1 phan trong diem tong hop cua lib/fraud.js (can >=2 tin hieu
+  // CUNG LUC moi bi giu lai). Gio TRUNG IP hoac TRUNG THIET BI VOI TAI KHOAN
+  // KHAC LA DU, khong can tin hieu nao khac di kem - luon dua vao "cho duyet"
+  // (KHONG chan cung, van cho nguoi dung lam nhiem vu binh thuong o buoc lay
+  // link - xem routes/tasks.js). Thong bao cho NGUOI DUNG chi ghi chung
+  // chung "IP/thiet bi nay da duoc su dung o tai khoan khac", TUYET DOI
+  // KHONG neu ten/ID tai khoan kia (theo yeu cau rieng, tranh lo thong tin
+  // giup ke gian tranh ne) - admin muon xem chi tiet tai khoan nao thi vao
+  // tab "Giam sat IP" / trang "Xem IP" cua tung user, du lieu van day du o do.
+  const dupIp = await db.get('SELECT 1 FROM ip_user_map WHERE ip=$1 AND user_id!=$2 LIMIT 1', [ip, attempt.user_id]);
+  const dupDevice = !dupIp && attempt.fingerprint
+    ? await db.get('SELECT 1 FROM fp_user_map WHERE fingerprint=$1 AND user_id!=$2 LIMIT 1', [attempt.fingerprint, attempt.user_id])
+    : null;
+
+  // ============================================================
   // CHONG VPN/PROXY/HOSTING/MANG DI DONG (2026-09): xem giai thich chi tiet
   // trong lib/ipIntel.js. Day la lop kiem tra THU 4, doc lap voi 3 lop cu -
   // cung chi GIU LAI cho admin duyet (KHONG tu choi cung), dung nguyen tac
@@ -91,6 +108,18 @@ router.get('/verify', async (req, res) => {
     // luong Ncoin cua cac nhiem vu loai nay khi tinh nguong).
   } else if (breakerResult.tripped) {
     holdReason = 'breaker';
+  } else if (dupIp) {
+    holdReason = 'duplicate_ip';
+    await logSecurityEvent('duplicate_ip', {
+      ip, userId: attempt.user_id,
+      detail: `Lượt vượt link #${tid} (${task.name}): IP này đang được dùng chung với ít nhất 1 tài khoản khác`,
+    });
+  } else if (dupDevice) {
+    holdReason = 'duplicate_device';
+    await logSecurityEvent('duplicate_device', {
+      ip, userId: attempt.user_id,
+      detail: `Lượt vượt link #${tid} (${task.name}): thiết bị này đang được dùng chung với ít nhất 1 tài khoản khác`,
+    });
   } else if (intel && intel.ok && intel.isProxy && is.ipintel_hold_vpn !== '0') {
     holdReason = 'vpn_proxy';
     await logSecurityEvent('vpn_proxy_detected', {
@@ -151,6 +180,10 @@ router.get('/verify', async (req, res) => {
         ? 'chưa xác nhận được bạn đã đi qua trang rút gọn link'
         : holdReason === 'quality_ip'
         ? 'nhà cung cấp yêu cầu kiểm tra IP chất lượng trước khi ghi nhận'
+        : holdReason === 'duplicate_ip'
+        ? 'IP này đã được sử dụng ở tài khoản khác'
+        : holdReason === 'duplicate_device'
+        ? 'thiết bị này đã được sử dụng ở tài khoản khác'
         : holdReason === 'vpn_proxy'
         ? 'phát hiện đang dùng VPN/Proxy - vui lòng tắt và làm lại nếu muốn được duyệt nhanh hơn'
         : holdReason === 'mobile_network'
