@@ -248,20 +248,23 @@ tr:last-child td{border-bottom:none}
 .rule-warn-text{font-size:13.5px;line-height:1.65;color:var(--text)}
 
 /* TASK NOTES - khung luu y tren trang Nhiem vu */
-.task-notes{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:18px 20px;margin-bottom:20px}
-.task-notes-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--primary2);margin-bottom:12px}
-.task-notes ol{margin:0 0 14px;padding-left:22px}
-.task-notes li{font-size:13.5px;line-height:1.8;color:var(--text);padding-left:2px}
-.task-notes li::marker{color:var(--text2);font-weight:600}
-.task-notes li.note-warn{color:#fbbf24}
-.task-notes li a{color:var(--accent2);text-decoration:underline}
-.note-chips{display:flex;flex-wrap:wrap;gap:8px}
-.note-chip{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid}
-.note-chip.ok{background:rgba(16,185,129,0.12);color:#34d399;border-color:rgba(16,185,129,0.3)}
-.note-chip.wait{background:rgba(245,158,11,0.12);color:#fbbf24;border-color:rgba(245,158,11,0.3)}
-.note-chip.no{background:rgba(239,68,68,0.12);color:#f87171;border-color:rgba(239,68,68,0.3)}
+.task-notes{background:var(--card);border:1px solid var(--card-border);border-left:3px solid var(--primary);border-radius:14px;padding:16px 20px;margin-bottom:20px}
+.task-notes-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px}
+.tips-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+.tip{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.65;color:var(--text2)}
+.tip strong{color:var(--text);font-weight:600}
+.tip a{color:var(--accent2);text-decoration:underline}
+.tip-ic{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:rgba(124,58,237,0.14);display:flex;align-items:center;justify-content:center;font-size:15px}
+.note-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--card-border);font-size:12px;color:var(--text2)}
+.legend-lbl{color:var(--text3)}
+.legend-item{display:inline-flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.ok{background:#10b981}
+.dot.wait{background:#f59e0b}
+.dot.no{background:#ef4444}
 @media(max-width:768px){
   .rule-card{padding:16px 14px}
   .rule-title{font-size:16px}
   .task-notes{padding:14px}
+  .tips-grid{grid-template-columns:1fr}
 }
