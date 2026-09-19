@@ -554,7 +554,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
 
       <div class="card" style="margin-bottom:16px">
         <div class="card-title">🔎 Chẩn đoán IP thật của server</div>
-        <div style="font-size:12.5px;color:var(--text2);margin-bottom:8px">Nếu IP hiển thị ở trang Nhiệm vụ không đúng với IP thật của người dùng (ví dụ luôn hiện 1 IP giống nhau cho mọi người, hoặc khác với whatismyip.com), khả năng cao là do 2 biến môi trường <code>TRUST_CF_HEADER</code> và <code>CANONICAL_HOST</code> trên Railway chưa được đặt đúng (xem giải thích chi tiết trong file <code>lib/ip.js</code>). Bảng dưới đây cho biết chính xác server đang thấy gì từ request này:</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-bottom:8px">Nếu IP hiển thị (VD ở trang Nhiệm vụ) không phải IP thật của người dùng — kể cả khi đã bật <code>TRUST_CF_HEADER</code> + <code>CANONICAL_HOST</code> — nguyên nhân thường KHÔNG phải do "Cloudflare + Railway cộng lại" mà do <b>ai đó gọi thẳng vào domain gốc trên Railway (bỏ qua Cloudflare) và tự đặt IP giả</b> qua header. <code>CANONICAL_HOST</code> chỉ kiểm tra header "Host" — thứ mà chính kẻ giả mạo cũng tự khai báo được (vd bằng curl), nên KHÔNG đủ để chặn việc này.</div>
         <table>
           <tr><th>Mục</th><th>Giá trị</th></tr>
           <tr><td>IP server đang dùng (getClientIp)</td><td><span class="ip-badge"><%=ipDiag.used%></span></td></tr>
@@ -563,9 +563,35 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <tr><td>req.ip (Express, sau trust proxy)</td><td><%=ipDiag.reqIp%></td></tr>
           <tr><td>Env TRUST_CF_HEADER</td><td><%if(ipDiag.trustCf){%><span class="badge badge-success">Đã bật</span><%}else{%><span class="badge badge-danger">CHƯA bật</span><%}%></td></tr>
           <tr><td>Env CANONICAL_HOST</td><td><%if(ipDiag.canonicalHost){%><span class="badge badge-success"><%=ipDiag.canonicalHost%></span><%}else{%><span class="badge badge-danger">CHƯA đặt</span><%}%></td></tr>
+          <tr><td><b>Env CF_ORIGIN_SECRET</b> (lớp bảo vệ THẬT SỰ)</td><td><%if(ipDiag.cfOriginSecretConfigured){%><span class="badge badge-success">Đã bật</span><%}else{%><span class="badge badge-danger">⚠️ CHƯA bật — đây là lý do IP có thể sai/giả mạo được</span><%}%></td></tr>
+          <%if(ipDiag.cfOriginSecretConfigured){%>
+          <tr><td>Request tải trang admin này có đi qua Cloudflare thật không</td><td><%if(ipDiag.originSecretSeenOnThisRequest){%><span class="badge badge-success">✅ Có — cấu hình đang hoạt động đúng</span><%}else{%><span class="badge badge-danger">❌ Không thấy header bí mật — kiểm tra lại Transform Rule trên Cloudflare</span><%}%></td></tr>
+          <%}%>
         </table>
-        <%if(!ipDiag.trustCf||!ipDiag.canonicalHost){%>
-        <div class="alert" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#fbbf24;margin-top:10px">⚠️ Nếu web đang chạy sau Cloudflare + Railway (2 lớp proxy chồng nhau), cần đặt CẢ HAI biến môi trường trên Railway thì IP hiển thị mới chính xác là IP thật của người dùng: <code>TRUST_CF_HEADER=1</code> và <code>CANONICAL_HOST=4ummo.com</code> (đổi thành đúng domain bạn dùng qua Cloudflare). Thiếu 1 trong 2 thì IP hiển thị vẫn có thể là IP của lớp trung gian (Cloudflare/Railway), giống nhau cho mọi người.</div>
+
+        <%if(!ipDiag.cfOriginSecretConfigured){%>
+        <div class="alert" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;margin-top:10px">
+          🚨 <b>Hiện tại IP hiển thị KHÔNG đáng tin</b> — ai đó có thể vào thẳng domain gốc Railway (không qua Cloudflare) và tự đặt IP bất kỳ (kể cả IP nước ngoài lạ như bạn đang thấy). Hệ thống đang tự động bỏ qua header Cloudflare cho tới khi bạn hoàn tất bước dưới đây, để không hiển thị số liệu có thể bị giả mạo.
+        </div>
+        <div style="margin-top:10px;font-size:13px">
+          <b>Làm theo đúng 3 bước sau (thiếu bước nào cũng không an toàn):</b>
+          <ol style="margin:8px 0 0 18px;padding:0;color:var(--text2);line-height:1.9">
+            <li>Vào <b>Cloudflare Dashboard</b> → chọn tên miền của bạn → <b>Rules</b> → <b>Transform Rules</b> → <b>Create rule</b> → <b>Modify Request Header</b>.
+              <br>Đặt: When incoming requests match... <code>All incoming requests</code>. Then: <code>Set static</code>, header name <code>X-Origin-Secret</code>, value dán đúng chuỗi bên dưới. Lưu lại.</li>
+            <li>Vào <b>Railway</b> → service của bạn → tab <b>Variables</b> → thêm biến <code>CF_ORIGIN_SECRET</code> = <b>đúng chuỗi y hệt</b> ở bước 1.</li>
+            <li>Đảm bảo cũng đã có 2 biến <code>TRUST_CF_HEADER=1</code> và <code>CANONICAL_HOST=<domain thật của bạn qua Cloudflare></code>. Deploy lại.</li>
+          </ol>
+          <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="color:var(--text2);font-size:12px">Chuỗi bí mật gợi ý (dùng luôn cho cả 2 nơi ở bước 1 và 2, sinh mới mỗi lần restart server):</span>
+            <code id="originSecretSuggest" style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:6px;word-break:break-all"><%=ipDiag.suggestedSecret%></code>
+            <button type="button" class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('originSecretSuggest').textContent);this.textContent='✅ Đã copy'">📋 Copy</button>
+          </div>
+          <div style="margin-top:6px;color:var(--text2);font-size:11.5px">⚠️ Chuỗi này chỉ là gợi ý hiển thị lúc bạn đang xem trang — nếu server restart nó sẽ đổi. Copy dùng NGAY trong lúc cấu hình, đừng để cách quãng nhiều ngày.</div>
+        </div>
+        <%}else if(!ipDiag.originSecretSeenOnThisRequest){%>
+        <div class="alert" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#fbbf24;margin-top:10px">⚠️ Đã đặt <code>CF_ORIGIN_SECRET</code> trên Railway, nhưng chính request đang tải trang admin này lại KHÔNG mang đúng header bí mật — nghĩa là Transform Rule trên Cloudflare chưa hoạt động đúng (có thể chưa lưu, áp dụng sai domain, hoặc bạn đang truy cập trực tiếp domain Railway gốc thay vì qua Cloudflare). Kiểm tra lại rule ở Cloudflare Dashboard.</div>
+        <%}else{%>
+        <div class="alert" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);color:#6ee7b7;margin-top:10px">✅ Đã cấu hình đúng và đang hoạt động — IP hiển thị từ giờ là IP thật của người dùng, không thể giả mạo qua đường vòng domain gốc Railway nữa.</div>
         <%}%>
       </div>
 

@@ -1,10 +1,18 @@
 const express = require('express');
 const db = require('../db');
+const crypto = require('crypto');
 const breaker = require('../lib/breaker');
 const fraud = require('../lib/fraud');
 const { creditAttemptReward } = require('../lib/attemptFlow');
 const { getClientIp } = require('../lib/ip');
 const router = express.Router();
+
+// Chuoi bi mat GOI Y san (khong phai chuoi dang dung, chi la goi y de admin
+// khong phai tu nghi chuoi ngau nhien) cho buoc cau hinh CF_ORIGIN_SECRET -
+// sinh 1 LAN MOI KHI SERVER KHOI DONG, giu nguyen trong suot phien chay de
+// admin co du thoi gian dan vao Cloudflare Transform Rule + bien moi truong
+// Railway ma khong bi doi giua chung. Xem card "Chan doan IP" trong admin.ejs.
+const SUGGESTED_ORIGIN_SECRET = crypto.randomBytes(24).toString('hex');
 
 // Kiem tra quyen admin - CHI ap dung cho duong dan bat dau bang '/admin'
 // (router nay duoc mount o prefix '/' trong server.js de cac duong dan noi
@@ -70,7 +78,9 @@ router.get('/admin', async (req, res) => {
 
   // Chan doan IP (xem card "Chan doan IP that cua server" o tab bao mat) -
   // giup admin tu kiem tra vi sao IP hien thi co the sai ma khong can SSH
-  // vao server doc log.
+  // vao server doc log. cfOriginSecretConfigured la cai QUAN TRONG NHAT (xem
+  // giai thich trong lib/ip.js) - CANONICAL_HOST/TRUST_CF_HEADER khong du,
+  // chi khi CO CF_ORIGIN_SECRET thi IP hien thi moi thuc su dang tin duoc.
   const ipDiag = {
     used: getClientIp(req),
     cfHeader: req.headers['cf-connecting-ip'] || '',
@@ -78,6 +88,13 @@ router.get('/admin', async (req, res) => {
     reqIp: req.ip,
     trustCf: process.env.TRUST_CF_HEADER === '1',
     canonicalHost: process.env.CANONICAL_HOST || '',
+    cfOriginSecretConfigured: !!process.env.CF_ORIGIN_SECRET,
+    // Neu request dang tai trang admin NAY di qua Cloudflare that (da cau
+    // hinh Transform Rule dung), header nay se co mat va khop CF_ORIGIN_SECRET.
+    originSecretSeenOnThisRequest: !!process.env.CF_ORIGIN_SECRET && req.headers['x-origin-secret'] === process.env.CF_ORIGIN_SECRET,
+    // Chuoi goi y de dan thang vao Cloudflare Transform Rule + bien moi
+    // truong Railway - sinh 1 lan/phien server chay, du dai + ngau nhien.
+    suggestedSecret: SUGGESTED_ORIGIN_SECRET,
   };
 
   res.render('admin', { tasks, categories, providers, withdrawals, orders, announcements, popups, regs, users, products, shopCategories, settings: s, ipMonitor,

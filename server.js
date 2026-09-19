@@ -87,6 +87,27 @@ if (process.env.CF_ORIGIN_SECRET) {
   });
 }
 
+// VA LOI DA SUA (2026-09, "IP hien sai, hien 1 IP la khong phai cua toi"):
+// truoc day neu CHI bat TRUST_CF_HEADER=1 + CANONICAL_HOST (thieu
+// CF_ORIGIN_SECRET), he thong VAN tin header CF-Connecting-IP - nhung
+// middleware CANONICAL_HOST o tren CHI kiem tra header "Host" (client tu
+// khai bao, gia mao duoc de dang bang curl/Postman goi thang toi domain
+// Railway goc) nen KHONG THAT SU dam bao request da di qua Cloudflare. Ke
+// gia mao co the tu dat ca Host lan CF-Connecting-IP tuy y. lib/ip.js gio DA
+// SUA: chi tin CF-Connecting-IP khi CF_ORIGIN_SECRET cung duoc cau hinh (xem
+// giai thich day du trong lib/ip.js). Canh bao nay nhac lai moi lan khoi
+// dong de admin khong bo sot buoc cuoi cung.
+if (process.env.TRUST_CF_HEADER === '1' && !process.env.CF_ORIGIN_SECRET) {
+  console.warn('======================================================');
+  console.warn('[CANH BAO IP] TRUST_CF_HEADER=1 nhung CHUA dat CF_ORIGIN_SECRET.');
+  console.warn('[CANH BAO IP] He thong dang TAM THOI BO QUA header CF-Connecting-IP');
+  console.warn('[CANH BAO IP] (vi khong the xac minh no that su den tu Cloudflare) va');
+  console.warn('[CANH BAO IP] dung req.ip thay the - IP hien thi cho nguoi dung CO THE');
+  console.warn('[CANH BAO IP] VAN SAI (vd hien IP cua Cloudflare/Railway thay vi IP that).');
+  console.warn('[CANH BAO IP] Xem huong dan bat CF_ORIGIN_SECRET trong Admin > tab Bảo mật.');
+  console.warn('======================================================');
+}
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
