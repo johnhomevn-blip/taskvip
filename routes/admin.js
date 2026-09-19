@@ -731,18 +731,21 @@ router.post('/admin/breaker/resume', async (req, res) => {
   res.redirect('/admin?ok=1#security');
 });
 
-// Duyet 1 nhiem vu dang "cho_duyet" -> cong thuong that su (dung CHUNG logic
-// voi luong /verify binh thuong qua lib/attemptFlow.js, xem giai thich trong
-// file do vi sao lam vay).
-router.post('/admin/attempts/:id/approve', async (req, res) => {
-  const id = req.params.id;
+// ---- Duyet / tu choi 1 luot dang "cho_duyet" ----
+// Tach thanh 2 ham rieng (tra ve {ok, error}) de DUNG CHUNG cho ca nut bam le
+// va duyet hang loat - moi luot chay trong transaction rieng, nen 1 luot loi
+// khong lam hong cac luot con lai.
+
+// Duyet -> cong thuong that su (dung CHUNG logic voi luong /verify binh thuong
+// qua lib/attemptFlow.js, xem giai thich trong file do vi sao lam vay).
+async function approveHeldAttempt(id) {
   const client = await db.connect();
   try {
     await client.query('BEGIN');
     // Dieu kien "AND status='cho_duyet'" dam bao khong duyet 2 lan neu admin
     // lo bam nut nhieu lan / mo 2 tab.
     const upd = await client.query("UPDATE task_attempts SET status='completed' WHERE id=$1 AND status='cho_duyet' RETURNING *", [id]);
-    if (upd.rowCount === 0) { await client.query('ROLLBACK'); return res.redirect('/admin?error=Nhiệm vụ không ở trạng thái chờ duyệt#security'); }
+    if (upd.rowCount === 0) { await client.query('ROLLBACK'); return { ok: false, error: 'Nhiệm vụ không ở trạng thái chờ duyệt' }; }
     const attempt = upd.rows[0];
     const task = await client.query('SELECT * FROM tasks WHERE id=$1', [attempt.task_id]).then(r => r.rows[0]);
     await creditAttemptReward(client, {
@@ -750,33 +753,68 @@ router.post('/admin/attempts/:id/approve', async (req, res) => {
       hasPendingTransactionRow: true, approvedByAdmin: true,
     });
     await client.query('COMMIT');
+    return { ok: true };
   } catch (e) {
-    await client.query('ROLLBACK'); console.error(e);
-    return res.redirect('/admin?error=Lỗi khi duyệt, thử lại sau#security');
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[admin] Duyet that bai, attempt', id, e);
+    // Kem nguyen nhan that (chi admin thay) de de chan doan thay vi chi bao chung chung
+    return { ok: false, error: 'Lỗi khi duyệt: ' + String((e && e.message) || e).slice(0, 160) };
   } finally { client.release(); }
-  res.redirect('/admin?ok=1#security');
-});
+}
 
-// Tu choi 1 nhiem vu dang "cho_duyet" -> KHONG cong thuong, chi cap nhat
-// trang thai va dong giao dich 'earn_pending' tuong ung sang 'earn_rejected'
-// de nguoi dung thay ro trong Lich su.
-router.post('/admin/attempts/:id/reject', async (req, res) => {
-  const id = req.params.id;
+// Tu choi -> KHONG cong thuong, chi cap nhat trang thai va dong giao dich
+// 'earn_pending' tuong ung sang 'earn_rejected' de nguoi dung thay ro trong Lich su.
+async function rejectHeldAttempt(id) {
   const client = await db.connect();
   try {
     await client.query('BEGIN');
     const upd = await client.query("UPDATE task_attempts SET status='rejected' WHERE id=$1 AND status='cho_duyet' RETURNING id, task_id", [id]);
-    if (upd.rowCount === 0) { await client.query('ROLLBACK'); return res.redirect('/admin?error=Nhiệm vụ không ở trạng thái chờ duyệt#security'); }
+    if (upd.rowCount === 0) { await client.query('ROLLBACK'); return { ok: false, error: 'Nhiệm vụ không ở trạng thái chờ duyệt' }; }
     await client.query(
       "UPDATE transactions SET type='earn_rejected' WHERE ref_attempt_id=$1 AND type='earn_pending'",
       [id]
     );
     await client.query('COMMIT');
+    return { ok: true };
   } catch (e) {
-    await client.query('ROLLBACK'); console.error(e);
-    return res.redirect('/admin?error=Lỗi khi từ chối, thử lại sau#security');
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[admin] Tu choi that bai, attempt', id, e);
+    return { ok: false, error: 'Lỗi khi từ chối: ' + String((e && e.message) || e).slice(0, 160) };
   } finally { client.release(); }
+}
+
+// Nut le (giu lai lam du phong neu trinh duyet tat JavaScript)
+router.post('/admin/attempts/:id/approve', async (req, res) => {
+  const r = await approveHeldAttempt(req.params.id);
+  if (!r.ok) return res.redirect('/admin?error=' + encodeURIComponent(r.error) + '#security');
   res.redirect('/admin?ok=1#security');
+});
+
+router.post('/admin/attempts/:id/reject', async (req, res) => {
+  const r = await rejectHeldAttempt(req.params.id);
+  if (!r.ok) return res.redirect('/admin?error=' + encodeURIComponent(r.error) + '#security');
+  res.redirect('/admin?ok=1#security');
+});
+
+// DUYET / TU CHOI HANG LOAT (trang admin goi bang fetch, KHONG reload trang).
+// body: action=approve|reject, ids=1,2,3   ->   JSON {ok, done:[...], failed:[{id,error}]}
+// Trang admin tu chia nho danh sach thanh cac lo ~20 luot/lan de tranh 1 request
+// chay qua lau; o day van chan toi da 100 id/lo phong truong hop goi tay.
+// Xu ly TUAN TU (khong song song) de khong khoa cheo dong users cua cung 1 nguoi.
+router.post('/admin/attempts/bulk', async (req, res) => {
+  const action = req.body.action;
+  if (action !== 'approve' && action !== 'reject') {
+    return res.status(400).json({ ok: false, error: 'Hành động không hợp lệ' });
+  }
+  const ids = [...new Set(String(req.body.ids || '').split(',').map(x => x.trim()).filter(x => /^\d+$/.test(x)))].slice(0, 100);
+  if (ids.length === 0) return res.status(400).json({ ok: false, error: 'Chưa chọn lượt nào' });
+
+  const done = [], failed = [];
+  for (const id of ids) {
+    const r = action === 'approve' ? await approveHeldAttempt(id) : await rejectHeldAttempt(id);
+    if (r.ok) done.push(Number(id)); else failed.push({ id: Number(id), error: r.error });
+  }
+  res.json({ ok: true, done, failed });
 });
 
 // Go co nghi ngo farm cho 1 user (danh cho truong hop admin da kiem tra thay

@@ -667,12 +667,36 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         <%if(breakerLogs.length===0){%><div style="text-align:center;padding:14px;color:var(--text2)">Chưa có lần trigger nào</div><%}%>
       </div>
 
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-title">⏳ Nhiệm vụ chờ duyệt (<%=heldAttempts.length%>)</div>
-        <table>
-          <tr><th>Thời gian</th><th>User</th><th>Nhiệm vụ</th><th>Ncoin</th><th>Lý do giữ</th><th>Chi tiết</th><th>Hành động</th></tr>
-          <%heldAttempts.forEach(a=>{%>
-          <tr>
+      <%
+      const heldKnown = ['breaker','duplicate_ip','duplicate_device','referer','quality_ip','vpn_proxy','mobile_network'];
+      %>
+      <div class="card" style="margin-bottom:16px" id="heldCard">
+        <div class="card-title">⏳ Nhiệm vụ chờ duyệt (<span id="heldCount"><%=heldAttempts.length%></span>)</div>
+        <div id="heldToolbarWrap" style="<%=heldAttempts.length===0?'display:none':''%>">
+          <div class="held-toolbar">
+            <label class="held-selall"><input type="checkbox" id="heldAll" onchange="heldToggleAll(this.checked)"> Chọn tất cả</label>
+            <select id="heldReasonPick" onchange="heldPickReason(this.value);this.value=''" style="<%=sel%>;width:auto;padding:6px 10px;font-size:12px">
+              <option value="">Chọn theo lý do…</option>
+              <option value="breaker">⚡ Cầu dao</option>
+              <option value="duplicate_ip">🔁 Trùng IP với TK khác</option>
+              <option value="duplicate_device">🔁 Trùng thiết bị với TK khác</option>
+              <option value="referer">🔗 Nghi ngờ bypass link</option>
+              <option value="quality_ip">📶 Cần IP chất lượng</option>
+              <option value="vpn_proxy">🛡️ VPN/Proxy</option>
+              <option value="mobile_network">📱 Mạng 4G/3G</option>
+              <option value="other">🕵️ Nghi vấn (khác)</option>
+            </select>
+            <span class="held-selcount" id="heldSelCount">Đã chọn 0</span>
+            <button type="button" class="btn btn-primary" id="heldBtnApprove" style="padding:5px 12px;font-size:12px" disabled onclick="heldBulk('approve')">✅ Duyệt đã chọn</button>
+            <button type="button" class="btn btn-outline" id="heldBtnReject" style="padding:5px 12px;font-size:12px;border-color:#ef4444;color:#ef4444" disabled onclick="heldBulk('reject')">❌ Từ chối đã chọn</button>
+          </div>
+        </div>
+        <div id="heldStatus" class="held-status" style="display:none"></div>
+        <table id="heldTable">
+          <tr><th style="width:28px"></th><th>Thời gian</th><th>User</th><th>Nhiệm vụ</th><th>Ncoin</th><th>Lý do giữ</th><th>Chi tiết</th><th>Hành động</th></tr>
+          <%heldAttempts.forEach(a=>{ const rk = heldKnown.includes(a.held_reason) ? a.held_reason : 'other'; %>
+          <tr data-held-id="<%=a.id%>" data-reason="<%=rk%>">
+            <td><input type="checkbox" class="held-cb" value="<%=a.id%>" onchange="heldUpdate()"></td>
             <td style="font-size:11px;color:var(--text2)"><%=new Date(parseInt(a.completed_at)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
             <td><b><%=a.username%></b></td>
             <td style="font-size:12px"><%=a.task_name%></td>
@@ -680,13 +704,13 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='duplicate_ip'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🔁 Trùng IP với TK khác</span><%}else if(a.held_reason==='duplicate_device'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🔁 Trùng thiết bị với TK khác</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📶 Cần IP chất lượng</span><%}else if(a.held_reason==='vpn_proxy'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🛡️ VPN/Proxy<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else if(a.held_reason==='mobile_network'){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c">📱 Mạng 4G/3G<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
             <td style="font-size:11px;color:var(--text2);max-width:220px"><%=a.fraud_reason||'—'%></td>
             <td style="white-space:nowrap">
-              <form method="POST" action="/admin/attempts/<%=a.id%>/approve" style="display:inline"><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" type="submit">✅ Duyệt</button></form>
-              <form method="POST" action="/admin/attempts/<%=a.id%>/reject" style="display:inline" onsubmit="return confirm('Từ chối nhiệm vụ này? Sẽ không cộng Ncoin.')"><button class="btn btn-outline" style="padding:4px 10px;font-size:12px;border-color:#ef4444;color:#ef4444" type="submit">❌ Từ chối</button></form>
+              <button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="heldReview('approve',['<%=a.id%>'])">✅ Duyệt</button>
+              <button type="button" class="btn btn-outline" style="padding:4px 10px;font-size:12px;border-color:#ef4444;color:#ef4444" onclick="heldReview('reject',['<%=a.id%>'])">❌ Từ chối</button>
             </td>
           </tr>
           <%})%>
         </table>
-        <%if(heldAttempts.length===0){%><div style="text-align:center;padding:14px;color:var(--text2)">Không có nhiệm vụ nào đang chờ duyệt</div><%}%>
+        <div id="heldEmpty" style="text-align:center;padding:14px;color:var(--text2);<%=heldAttempts.length===0?'':'display:none'%>">Không có nhiệm vụ nào đang chờ duyệt</div>
       </div>
 
       <div class="card" style="margin-bottom:16px">
@@ -856,6 +880,83 @@ function searchUserSelect(input, selectId) {
     } catch (e) { console.error('Lỗi tìm user:', e); }
   }, 300);
 }
+// ===== Duyet / tu choi nhiem vu cho duyet: KHONG reload trang, ho tro hang loat =====
+let heldBusy = false;
+function heldRows() { return Array.from(document.querySelectorAll('#heldTable tr[data-held-id]')); }
+function heldSelected() { return Array.from(document.querySelectorAll('#heldTable .held-cb:checked')).map(cb => cb.value); }
+function heldUpdate() {
+  const n = heldSelected().length, total = heldRows().length;
+  document.getElementById('heldSelCount').textContent = 'Đã chọn ' + n;
+  document.getElementById('heldBtnApprove').disabled = heldBusy || n === 0;
+  document.getElementById('heldBtnReject').disabled = heldBusy || n === 0;
+  const all = document.getElementById('heldAll');
+  all.checked = total > 0 && n === total;
+  all.indeterminate = n > 0 && n < total;
+  document.getElementById('heldCount').textContent = total;
+}
+function heldToggleAll(v) { document.querySelectorAll('#heldTable .held-cb').forEach(cb => { cb.checked = v; }); heldUpdate(); }
+function heldPickReason(reason) {
+  if (!reason) return;
+  heldRows().forEach(tr => { if (tr.dataset.reason === reason) tr.querySelector('.held-cb').checked = true; });
+  heldUpdate();
+}
+function heldBulk(action) { const ids = heldSelected(); if (ids.length) heldReview(action, ids); }
+async function heldReview(action, ids) {
+  if (heldBusy) return;
+  const isApprove = action === 'approve';
+  if (!isApprove && !confirm('Từ chối ' + ids.length + ' lượt? Sẽ KHÔNG cộng Ncoin cho người dùng.')) return;
+  if (isApprove && ids.length > 1 && !confirm('Duyệt ' + ids.length + ' lượt? Ncoin sẽ được cộng cho người dùng.')) return;
+
+  heldBusy = true; heldUpdate();
+  const status = document.getElementById('heldStatus');
+  status.style.display = 'block'; status.className = 'held-status';
+  const CHUNK = 20, failed = [];
+  let done = 0, fatal = '';
+  try {
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const part = ids.slice(i, i + CHUNK);
+      status.textContent = '⏳ Đang xử lý ' + Math.min(i + part.length, ids.length) + '/' + ids.length + '…';
+      const res = await fetch('/admin/attempts/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+        body: new URLSearchParams({ action: action, ids: part.join(',') })
+      });
+      let data;
+      try { data = await res.json(); } catch (e) { throw new Error('Máy chủ trả về lỗi (HTTP ' + res.status + ')'); }
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Lỗi không xác định');
+      data.done.forEach(id => {
+        const tr = document.querySelector('#heldTable tr[data-held-id="' + id + '"]');
+        if (tr) tr.remove();
+        done++;
+      });
+      data.failed.forEach(f => {
+        failed.push(f);
+        // Luot da duoc xu ly boi nguoi khac / tab khac -> cung go khoi danh sach
+        if (/không ở trạng thái chờ duyệt/.test(f.error)) {
+          const tr = document.querySelector('#heldTable tr[data-held-id="' + f.id + '"]');
+          if (tr) tr.remove();
+        }
+      });
+    }
+  } catch (e) { fatal = e.message; }
+
+  heldBusy = false; heldUpdate();
+  if (heldRows().length === 0) {
+    document.getElementById('heldToolbarWrap').style.display = 'none';
+    document.getElementById('heldEmpty').style.display = 'block';
+  }
+  const verb = isApprove ? 'duyệt' : 'từ chối';
+  const realFailed = failed.filter(f => !/không ở trạng thái chờ duyệt/.test(f.error));
+  if (!fatal && realFailed.length === 0) {
+    status.className = 'held-status ok';
+    status.textContent = '✅ Đã ' + verb + ' ' + done + ' lượt.' + (failed.length ? ' (' + failed.length + ' lượt đã được xử lý trước đó)' : '');
+  } else {
+    status.className = 'held-status err';
+    const detail = realFailed.slice(0, 5).map(f => '#' + f.id + ': ' + f.error).join(' · ');
+    status.textContent = '⚠️ Đã ' + verb + ' ' + done + ' lượt, ' + (realFailed.length + (fatal ? 1 : 0)) + ' lỗi. ' + (fatal ? fatal + '. ' : '') + detail + (fatal ? ' — tải lại trang để xem trạng thái mới nhất.' : '');
+  }
+}
+
 function showTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));

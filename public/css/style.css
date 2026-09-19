@@ -294,3 +294,12 @@ tr:last-child td{border-bottom:none}
   .task-notes{padding:14px}
   .tips-grid{grid-template-columns:1fr}
 }
+
+/* ADMIN - thanh cong cu duyet hang loat nhiem vu cho duyet */
+.held-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.held-selall{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer}
+.held-selcount{font-size:12px;color:var(--text2);min-width:70px}
+.held-toolbar .btn:disabled{opacity:0.4;cursor:not-allowed}
+.held-status{padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6;margin-bottom:12px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);color:var(--text)}
+.held-status.ok{background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.3);color:#34d399}
+.held-status.err{background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);color:#fca5a5}
