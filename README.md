@@ -154,3 +154,18 @@ mục Lịch sử của người dùng, các nhiệm vụ này hiện trạng th
 ngay lập tức, sau đó tự cập nhật thành "⚡ Vượt link" (nếu admin duyệt) hoặc
 "❌ Từ chối" (nếu admin từ chối) — không bao giờ hiện "Hoàn thành" giả trước
 khi thật sự được duyệt.
+
+## Phần 7 — Giao diện sáng / tối (thêm 2026-09)
+
+Web có 2 giao diện: nền tối (như cũ) và nền sáng. Người dùng tự đổi bằng nút
+☀️/🌙 (trong thanh tiêu đề, hoặc góc trên bên phải ở trang đăng nhập/đăng ký).
+
+- Lần đầu vào web: tự theo cài đặt sáng/tối của thiết bị. Sau khi bấm nút thì
+  nhớ lựa chọn trong trình duyệt (khoá `theme` trong localStorage).
+- Toàn bộ màu nằm ở đầu `public/css/style.css`: khối `:root` là nền tối,
+  khối `:root[data-theme="light"]` là nền sáng. Muốn chỉnh màu chỉ cần sửa ở đó.
+- Khi viết trang mới: dùng biến màu (`var(--text)`, `var(--gold)`, `var(--ok)`,
+  `var(--bad)`, `var(--fill)`...) thay vì mã màu cứng như `#fbbf24`, để chữ luôn
+  đọc được ở cả hai nền. Mỗi trang cần có dòng
+  `<%- include('partials/theme-head') %>` trong `<head>`.
+- Các file liên quan: `public/js/theme.js`, `views/partials/theme-head.ejs`.

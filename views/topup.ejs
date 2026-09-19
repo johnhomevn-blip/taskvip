@@ -2,6 +2,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Nạp Vcoin - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>">
 <link rel="stylesheet" href="/css/coins.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
@@ -17,11 +18,11 @@
     <div style="background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(124,58,237,0.15));border:1px solid rgba(96,165,250,0.2);border-radius:14px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-size:12px;color:var(--text2)">Vcoin hiện có</div>
-        <div style="font-size:32px;font-weight:800;color:#60a5fa;display:flex;align-items:center;gap:8px"><span class="vi lg">V</span><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+        <div style="font-size:32px;font-weight:800;color:var(--blue);display:flex;align-items:center;gap:8px"><span class="vi lg">V</span><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
       </div>
       <div style="text-align:right;font-size:12px;color:var(--text2)">
         <div>Vcoin nạp vào cần chờ</div>
-        <div style="font-size:18px;font-weight:700;color:#f59e0b"><%=lockDays%> ngày</div>
+        <div style="font-size:18px;font-weight:700;color:var(--warn)"><%=lockDays%> ngày</div>
         <div>mới được rút ra</div>
       </div>
     </div>
@@ -31,16 +32,16 @@
         <div class="card-title">📋 Hướng dẫn nạp Vcoin</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap"><%=settings.topup_guide||'Liên hệ admin để nạp Vcoin.'%></div>
         <%if(settings.admin_bank){%>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;margin-top:14px;">
+        <div style="background:var(--fill);border-radius:10px;padding:14px;margin-top:14px;">
           <div style="font-size:11px;color:var(--text2);margin-bottom:6px">THÔNG TIN THANH TOÁN</div>
           <div style="font-size:13px;white-space:pre-wrap"><%=settings.admin_bank%></div>
         </div>
         <%}%>
         <div style="background:rgba(96,165,250,0.08);border-radius:10px;padding:12px;margin-top:12px;font-size:13px">
-          <b style="color:#60a5fa">Nội dung chuyển khoản:</b><br>
+          <b style="color:var(--blue)">Nội dung chuyển khoản:</b><br>
           <span style="font-size:15px;font-weight:700">NapVcoin_<%=user.username%></span>
         </div>
-        <div style="margin-top:12px;padding:10px;background:rgba(245,158,11,0.08);border-radius:10px;font-size:12px;color:#f59e0b">
+        <div style="margin-top:12px;padding:10px;background:rgba(245,158,11,0.08);border-radius:10px;font-size:12px;color:var(--warn)">
           💡 Tỷ lệ: 1đ = 1 Vcoin · Vcoin nạp chờ <%=lockDays%> ngày mới rút được
         </div>
       </div>
@@ -52,12 +53,12 @@
           <%history.forEach(h=>{%>
           <tr>
             <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
-            <td style="color:#60a5fa;font-weight:600">+<%=h.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>V</td>
+            <td style="color:var(--blue);font-weight:600">+<%=h.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>V</td>
             <td style="font-size:12px">
               <%if(Date.now()>=parseInt(h.withdrawable_at)){%>
-              <span style="color:#10b981">✅ Đã mở khóa</span>
+              <span style="color:var(--ok)">✅ Đã mở khóa</span>
               <%}else{%>
-              <span style="color:#f59e0b"><%=new Date(parseInt(h.withdrawable_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span>
+              <span style="color:var(--warn)"><%=new Date(parseInt(h.withdrawable_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span>
               <%}%>
             </td>
           </tr>

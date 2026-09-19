@@ -1,0 +1,18 @@
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0d0b1e">
+<script data-cfasync="false">
+/* Dat giao dien sang/toi NGAY khi vua doc xong <head>, truoc khi trinh duyet ve trang -> khong bi nhay nen.
+   Uu tien lua chon da luu; chua co thi theo cai dat sang/toi cua thiet bi. */
+(function(){
+  var t='dark';
+  try{
+    var s=localStorage.getItem('theme');
+    if(s==='light'||s==='dark') t=s;
+    else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches) t='light';
+  }catch(e){}
+  document.documentElement.setAttribute('data-theme',t);
+  var m=document.querySelector('meta[name="theme-color"]');
+  if(m) m.setAttribute('content',t==='light'?'#f5f3fb':'#0d0b1e');
+})();
+</script>
+<script src="/js/theme.js?v=<%= typeof assetVersion!=='undefined' ? assetVersion : '' %>" data-cfasync="false" defer></script>

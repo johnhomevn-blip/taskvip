@@ -2,6 +2,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Quy Đổi - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>"><link rel="stylesheet" href="/css/coins.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
 <%- include('partials/sidebar',{page:'shop',user}) %><%- include('partials/popup') %>
@@ -11,8 +12,8 @@
 <%if(error){%><div class="alert alert-error">⚠️ <%=error%></div><%}%>
 <%if(ok){%><div class="alert alert-success">✅ Thao tác thành công!</div><%}%>
 <div style="display:flex;gap:12px;margin-bottom:16px;padding:14px;background:var(--card);border:1px solid var(--card-border);border-radius:12px">
-  <span class="coin-wrap"><span class="ni">N</span><b style="color:#f59e0b"><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>N</b></span>
-  <span class="coin-wrap"><span class="vi">V</span><b style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>V</b></span>
+  <span class="coin-wrap"><span class="ni">N</span><b style="color:var(--warn)"><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>N</b></span>
+  <span class="coin-wrap"><span class="vi">V</span><b style="color:var(--blue)"><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>V</b></span>
 </div>
 
 <%if(categories.length>0){%>
@@ -36,10 +37,10 @@
     <div style="font-size:11px;color:var(--text2);margin-bottom:10px"><%=p.effective_stock===-1?'Không giới hạn':p.effective_stock===0?'Hết hàng':`Còn ${p.effective_stock}`%></div>
     <form method="POST" action="/shop/<%=p.id%>/buy" style="display:flex;flex-direction:column;gap:6px">
       <%if(p.require_note){%>
-      <input name="note" placeholder="<%=p.note_label||'Nhập thông tin cần thiết'%>" required maxlength="300" style="padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-size:12.5px">
+      <input name="note" placeholder="<%=p.note_label||'Nhập thông tin cần thiết'%>" required maxlength="300" style="padding:8px 10px;background:var(--fill);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-size:12.5px">
       <%}%>
       <div style="display:flex;gap:6px">
-        <input name="quantity" type="number" min="1" max="<%=p.effective_stock===-1?50:Math.min(50,p.effective_stock)%>" value="1" style="width:64px;padding:8px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);text-align:center" <%=p.effective_stock===0?'disabled':''%>>
+        <input name="quantity" type="number" min="1" max="<%=p.effective_stock===-1?50:Math.min(50,p.effective_stock)%>" value="1" style="width:64px;padding:8px;background:var(--fill);border:1px solid var(--card-border);border-radius:8px;color:var(--text);text-align:center" <%=p.effective_stock===0?'disabled':''%>>
         <button class="btn-task" style="flex:1" <%=p.effective_stock===0?'disabled':''%>><%=p.effective_stock===0?'Hết hàng':'🛍️ Đổi ngay'%></button>
       </div>
     </form>

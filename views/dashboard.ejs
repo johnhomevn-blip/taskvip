@@ -2,6 +2,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Dashboard - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>">
 <link rel="stylesheet" href="/css/coins.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
@@ -37,12 +38,12 @@
     <div class="grid4" style="margin-bottom:16px">
       <div class="stat-card">
         <div class="stat-label"><span class="ni">N</span> Ncoin</div>
-        <div class="stat-value" style="color:#f59e0b"><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+        <div class="stat-value" style="color:var(--warn)"><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub">Rút ra tiền thật</div>
       </div>
       <div class="stat-card">
         <div class="stat-label"><span class="vi">V</span> Vcoin</div>
-        <div class="stat-value" style="color:#60a5fa"><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+        <div class="stat-value" style="color:var(--blue)"><%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub">Mua dịch vụ</div>
       </div>
       <div class="stat-card">
@@ -52,7 +53,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-label"><span class="ni sm">N</span> Ncoin tuần</div>
-        <div class="stat-value" style="color:#a78bfa"><%=weekNcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+        <div class="stat-value" style="color:var(--lav)"><%=weekNcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
         <div class="stat-sub"><%=monthNcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> tháng</div>
       </div>
     </div>

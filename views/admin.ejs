@@ -2,12 +2,13 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Admin - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>">
 <link rel="stylesheet" href="/css/coins.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
 <%
-const inp = 'padding:9px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text);width:100%';
-const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
+const inp = 'padding:9px 12px;background:var(--fill);border:1px solid var(--card-border);border-radius:10px;color:var(--text);width:100%';
+const sel = inp.replace('var(--fill)','var(--bg2)');
 %>
 <%- include('partials/sidebar',{page:'admin',user}) %>
 <div class="main" id="main">
@@ -43,7 +44,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         </form>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
           <%categories.forEach(c=>{%>
-          <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;padding:6px 10px">
+          <div style="display:flex;align-items:center;gap:6px;background:var(--fill);border:1px solid var(--card-border);border-radius:8px;padding:6px 10px">
             <span><%=c.icon%> <%=c.name%></span>
             <form method="POST" action="/admin/categories/<%=c.id%>/toggle" style="display:inline">
               <button class="btn btn-sm <%=c.active?'btn-warning':'btn-success'%>" type="submit" style="padding:2px 8px;font-size:11px"><%=c.active?'Tắt':'Bật'%></button>
@@ -93,13 +94,13 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <tr>
             <td><%=t.name%></td>
             <td style="color:var(--text2)"><%=t.cat_name||'—'%></td>
-            <td><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600"><%=t.provider%></span></td>
+            <td><span style="background:rgba(16,185,129,0.15);color:var(--ok);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600"><%=t.provider%></span></td>
             <td><span class="coin-wrap"><span class="ni sm">N</span><%=t.base_reward.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span></td>
             <td><%=t.daily_limit%></td><td><%=t.ip_daily_limit%></td>
             <td style="font-size:11px;color:var(--text2)"><%=t.reset_mode==='rolling'?`${t.reset_hours}h/lần`:'00:00'%></td>
             <td>
               <form method="POST" action="/admin/tasks/<%=t.id%>/toggle-review">
-                <button class="btn btn-sm" type="submit" style="<%=t.require_review?'background:rgba(168,85,247,0.15);color:#a855f7':'background:rgba(156,163,175,0.1);color:#9ca3af'%>"><%=t.require_review?'📶 Bật':'Tắt'%></button>
+                <button class="btn btn-sm" type="submit" style="<%=t.require_review?'background:rgba(168,85,247,0.15);color:var(--violet)':'background:rgba(156,163,175,0.1);color:var(--gray)'%>"><%=t.require_review?'📶 Bật':'Tắt'%></button>
               </form>
             </td>
             <td><%if(t.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
@@ -110,7 +111,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             </td>
           </tr>
           <tr id="edit-task-<%=t.id%>" style="display:none">
-            <td colspan="10" style="background:rgba(255,255,255,0.02)">
+            <td colspan="10" style="background:var(--row-bg)">
               <form method="POST" action="/admin/tasks/<%=t.id%>/edit" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:10px 0">
                 <input name="name" placeholder="Tên nhiệm vụ" value="<%=t.name%>" style="<%=inp%>" required>
                 <select name="category_id" style="<%=sel%>">
@@ -198,8 +199,8 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <tr>
             <td><b><%=w.username%></b></td>
             <td><span class="coin-wrap"><span class="ni sm">N</span><%=w.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span></td>
-            <td style="color:#ef4444">+<%=(w.fee||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
-            <td style="color:#10b981;font-weight:600"><%=(w.amount+(w.fee||0)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</td>
+            <td style="color:var(--bad)">+<%=(w.fee||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
+            <td style="color:var(--ok);font-weight:600"><%=(w.amount+(w.fee||0)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</td>
             <td><%=w.method%></td>
             <td style="font-size:12px;color:var(--text2)">
               <%=w.detail%>
@@ -327,12 +328,12 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <div>
               <div><b><%=o.username%></b> mua <b><%=o.pname%></b> x<%=o.quantity||1%> <span style="font-size:11px;color:var(--text2)">(mã <%=o.order_code%>)</span></div>
               <div style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(o.created_at)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
-              <%if(o.note){%><div style="font-size:12.5px;margin-top:4px;padding:6px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);border-radius:8px;color:#93c5fd">📝 Khách nhập: <b><%=o.note%></b></div><%}%>
+              <%if(o.note){%><div style="font-size:12.5px;margin-top:4px;padding:6px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);border-radius:8px;color:var(--info-text)">📝 Khách nhập: <b><%=o.note%></b></div><%}%>
             </div>
             <div><%if(o.price_ncoin>0){%><span class="coin-wrap"><span class="ni sm">N</span><%=o.price_ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span><%}%><%if(o.price_vcoin>0){%><span class="coin-wrap"><span class="vi sm">V</span><%=o.price_vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span><%}%></div>
           </div>
           <form method="POST" action="/admin/orders/<%=o.id%>/done" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-            <textarea name="delivery_info" placeholder="Dán tài khoản/mật khẩu hoặc thông tin giao cho khách..." rows="2" style="flex:1;min-width:220px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);resize:vertical"></textarea>
+            <textarea name="delivery_info" placeholder="Dán tài khoản/mật khẩu hoặc thông tin giao cho khách..." rows="2" style="flex:1;min-width:220px;padding:8px 10px;background:var(--fill);border:1px solid var(--card-border);border-radius:8px;color:var(--text);resize:vertical"></textarea>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button class="btn btn-sm btn-success" type="submit">✅ Gửi & Hoàn tất</button>
             </div>
@@ -351,11 +352,11 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <tr>
             <td><%=p.name%></td>
             <td style="color:var(--text2)"><%=p.cat_name||'—'%></td>
-            <td><%if(p.delivery_mode==='pool'){%><span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981">Tự động</span><%}else{%><span class="badge" style="background:rgba(156,163,175,0.15);color:#9ca3af">Thủ công</span><%}%></td>
+            <td><%if(p.delivery_mode==='pool'){%><span class="badge" style="background:rgba(16,185,129,0.15);color:var(--ok)">Tự động</span><%}else{%><span class="badge" style="background:rgba(156,163,175,0.15);color:var(--gray)">Thủ công</span><%}%></td>
             <td><span class="coin-wrap"><%=(p.price||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</span></td>
             <td><%if(p.delivery_mode==='pool'){%><%=p.pool_available%> sẵn có<%}else{%><%=p.stock===-1?'∞':p.stock%><%}%></td>
             <td style="font-size:11px">
-              <%if(p.require_note){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📝 <%=p.note_label||'Có'%></span><%}else{%><span style="color:var(--text2)">Không</span><%}%>
+              <%if(p.require_note){%><span class="badge" style="background:rgba(168,85,247,0.15);color:var(--violet)">📝 <%=p.note_label||'Có'%></span><%}else{%><span style="color:var(--text2)">Không</span><%}%>
             </td>
             <td><%if(p.active){%><span class="badge badge-success">Bật</span><%}else{%><span class="badge badge-danger">Tắt</span><%}%></td>
             <td style="display:flex;gap:4px;flex-wrap:wrap">
@@ -365,7 +366,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             </td>
           </tr>
           <tr id="edit-prod-<%=p.id%>" style="display:none">
-            <td colspan="8" style="background:rgba(255,255,255,0.02)">
+            <td colspan="8" style="background:var(--row-bg)">
               <form method="POST" action="/admin/products/<%=p.id%>/edit" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:10px 0">
                 <input name="name" placeholder="Tên sản phẩm" value="<%=p.name%>" style="<%=inp%>" required>
                 <input name="description" placeholder="Mô tả" value="<%=p.description%>" style="<%=inp%>">
@@ -386,9 +387,9 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             </td>
           </tr>
           <%if(p.delivery_mode==='pool'){%>
-          <tr><td colspan="8" style="background:rgba(255,255,255,0.02)">
+          <tr><td colspan="8" style="background:var(--row-bg)">
             <form method="POST" action="/admin/products/<%=p.id%>/stock" style="display:flex;gap:6px;flex-wrap:wrap;padding:6px 0">
-              <textarea name="items" placeholder="Dán danh sách, mỗi dòng 1 tài khoản (VD: user1@gmail.com|matkhau123)" rows="2" style="flex:1;min-width:220px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text);resize:vertical"></textarea>
+              <textarea name="items" placeholder="Dán danh sách, mỗi dòng 1 tài khoản (VD: user1@gmail.com|matkhau123)" rows="2" style="flex:1;min-width:220px;padding:8px 10px;background:var(--fill);border:1px solid var(--card-border);border-radius:8px;color:var(--text);resize:vertical"></textarea>
               <button class="btn btn-sm btn-success" type="submit">➕ Thêm vào kho</button>
             </form>
           </td></tr>
@@ -397,10 +398,10 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
                o backend nhung TRUOC DAY KHONG CO form/nut nao goi toi no ca - nghia
                la san pham "giao thu cong" chi dat duoc so luong kho 1 LAN DUY NHAT
                luc tao, het hang la KHONG CO CACH NAO cap nhat lai qua giao dien. -->
-          <tr><td colspan="8" style="background:rgba(255,255,255,0.02)">
+          <tr><td colspan="8" style="background:var(--row-bg)">
             <form method="POST" action="/admin/products/<%=p.id%>/restock" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0">
               <span style="font-size:12px;color:var(--text2)">Cập nhật số lượng kho (-1 = không giới hạn):</span>
-              <input name="stock" type="number" placeholder="Số lượng mới" value="<%=p.stock%>" style="width:120px;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:8px;color:var(--text)">
+              <input name="stock" type="number" placeholder="Số lượng mới" value="<%=p.stock%>" style="width:120px;padding:6px 8px;background:var(--fill);border:1px solid var(--card-border);border-radius:8px;color:var(--text)">
               <button class="btn btn-sm btn-success" type="submit">💾 Cập nhật kho</button>
             </form>
           </td></tr>
@@ -497,7 +498,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><%if(u.is_banned){%><span class="badge badge-danger">🔒 Đã khóa</span><%}else{%><span class="badge badge-success">✅ Hoạt động</span><%}%></td>
             <td style="display:flex;gap:4px;flex-wrap:wrap">
               <a href="/admin/user/<%=u.id%>/ips" class="btn btn-sm btn-outline">🔍 IP</a>
-              <form method="POST" action="/admin/user/<%=u.id%>/reset-ip" onsubmit="return confirm('Xóa IP/thiết bị đã ghi nhận của user này? Dùng khi họ đổi máy/mạng bị chặn nhầm.')"><button class="btn btn-sm btn-outline" type="submit" style="color:#f59e0b;border-color:rgba(245,158,11,0.3)">♻️ Reset IP</button></form>
+              <form method="POST" action="/admin/user/<%=u.id%>/reset-ip" onsubmit="return confirm('Xóa IP/thiết bị đã ghi nhận của user này? Dùng khi họ đổi máy/mạng bị chặn nhầm.')"><button class="btn btn-sm btn-outline" type="submit" style="color:var(--warn);border-color:rgba(245,158,11,0.3)">♻️ Reset IP</button></form>
               <form method="POST" action="/admin/users/<%=u.id%>/ban"><button class="btn btn-sm <%=u.is_banned?'btn-success':'btn-warning'%>" type="submit"><%=u.is_banned?'Mở khóa':'Khóa'%></button></form>
               <form method="POST" action="/admin/users/<%=u.id%>/delete" onsubmit="return confirm('Xóa vĩnh viễn tài khoản này? Toàn bộ dữ liệu liên quan sẽ mất.')"><button class="btn btn-sm btn-danger" type="submit">Xóa</button></form>
             </td>
@@ -519,14 +520,14 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td style="color:var(--text2);font-size:11px"><%=new Date(parseInt(row.created_at)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
             <td><b><%=row.username%></b></td>
             <td style="font-size:12px"><%=row.task_name%></td>
-            <td><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600"><%=row.task_provider%></span></td>
+            <td><span style="background:rgba(16,185,129,0.15);color:var(--ok);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600"><%=row.task_provider%></span></td>
             <td>
               <span class="ip-badge"><%=row.ip_created||'—'%></span>
               <%if(row.ip_v4_hint){%><div style="margin-top:3px;font-size:11px;color:var(--text2)" title="IPv4 do trình duyệt người dùng tự báo cáo qua api4.ipify.org - KHÔNG được Cloudflare xác thực, chỉ mang tính tham khảo, có thể bị giả mạo">IPv4: <%=row.ip_v4_hint%> <span style="opacity:.6">(tự báo cáo)</span></div><%}%>
             </td>
             <td style="font-size:11px">
               <%if(row.ip_is_vpn===1){%><span class="badge badge-danger">🛡️ VPN/Proxy</span><%}%>
-              <%if(row.ip_is_mobile===1){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c;margin-left:4px">📱 4G/3G</span><%}%>
+              <%if(row.ip_is_mobile===1){%><span class="badge" style="background:rgba(251,146,60,0.15);color:var(--orange);margin-left:4px">📱 4G/3G</span><%}%>
               <%if(row.ip_is_vpn!==1&&row.ip_is_mobile!==1){%><span style="color:var(--text2)"><%=row.ip_isp?row.ip_isp:(row.status==='pending'?'chưa xác nhận':'—')%></span><%}%>
             </td>
             <td>
@@ -576,7 +577,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
         </table>
 
         <%if(!ipDiag.cfOriginSecretConfigured){%>
-        <div class="alert" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;margin-top:10px">
+        <div class="alert" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--err-text);margin-top:10px">
           🚨 <b>Hiện tại IP hiển thị KHÔNG đáng tin</b> — ai đó có thể vào thẳng domain gốc Railway (không qua Cloudflare) và tự đặt IP bất kỳ (kể cả IP nước ngoài lạ như bạn đang thấy). Hệ thống đang tự động bỏ qua header Cloudflare cho tới khi bạn hoàn tất bước dưới đây, để không hiển thị số liệu có thể bị giả mạo.
         </div>
         <div style="margin-top:10px;font-size:13px">
@@ -587,17 +588,17 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <li>Vào <b>Railway</b> → service của bạn → tab <b>Variables</b> → thêm biến <code>CF_ORIGIN_SECRET</code> = <b>đúng chuỗi y hệt</b> ở bước 1.</li>
             <li>Đảm bảo cũng đã có 2 biến <code>TRUST_CF_HEADER=1</code> và <code>CANONICAL_HOST=<domain thật của bạn qua Cloudflare></code>. Deploy lại.</li>
           </ol>
-          <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="margin-top:10px;padding:10px;background:var(--fill);border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="color:var(--text2);font-size:12px">Chuỗi bí mật gợi ý (dùng luôn cho cả 2 nơi ở bước 1 và 2, sinh mới mỗi lần restart server):</span>
-            <code id="originSecretSuggest" style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:6px;word-break:break-all"><%=ipDiag.suggestedSecret%></code>
+            <code id="originSecretSuggest" style="background:var(--code-bg);padding:4px 8px;border-radius:6px;word-break:break-all"><%=ipDiag.suggestedSecret%></code>
             <button type="button" class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('originSecretSuggest').textContent);this.textContent='✅ Đã copy'">📋 Copy</button>
           </div>
           <div style="margin-top:6px;color:var(--text2);font-size:11.5px">⚠️ Chuỗi này chỉ là gợi ý hiển thị lúc bạn đang xem trang — nếu server restart nó sẽ đổi. Copy dùng NGAY trong lúc cấu hình, đừng để cách quãng nhiều ngày.</div>
         </div>
         <%}else if(!ipDiag.originSecretSeenOnThisRequest){%>
-        <div class="alert" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#fbbf24;margin-top:10px">⚠️ Đã đặt <code>CF_ORIGIN_SECRET</code> trên Railway, nhưng chính request đang tải trang admin này lại KHÔNG mang đúng header bí mật — nghĩa là Transform Rule trên Cloudflare chưa hoạt động đúng (có thể chưa lưu, áp dụng sai domain, hoặc bạn đang truy cập trực tiếp domain Railway gốc thay vì qua Cloudflare). Kiểm tra lại rule ở Cloudflare Dashboard.</div>
+        <div class="alert" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:var(--gold);margin-top:10px">⚠️ Đã đặt <code>CF_ORIGIN_SECRET</code> trên Railway, nhưng chính request đang tải trang admin này lại KHÔNG mang đúng header bí mật — nghĩa là Transform Rule trên Cloudflare chưa hoạt động đúng (có thể chưa lưu, áp dụng sai domain, hoặc bạn đang truy cập trực tiếp domain Railway gốc thay vì qua Cloudflare). Kiểm tra lại rule ở Cloudflare Dashboard.</div>
         <%}else{%>
-        <div class="alert" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);color:#6ee7b7;margin-top:10px">✅ Đã cấu hình đúng và đang hoạt động — IP hiển thị từ giờ là IP thật của người dùng, không thể giả mạo qua đường vòng domain gốc Railway nữa.</div>
+        <div class="alert" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);color:var(--ok-text);margin-top:10px">✅ Đã cấu hình đúng và đang hoạt động — IP hiển thị từ giờ là IP thật của người dùng, không thể giả mạo qua đường vòng domain gốc Railway nữa.</div>
         <%}%>
       </div>
 
@@ -646,7 +647,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
           <%}else{%>
           <form method="POST" action="/admin/breaker/trip" onsubmit="return confirm('Tạm dừng xác nhận nhiệm vụ ngay bây giờ?')">
             <input type="hidden" name="note" value="Tạm dừng khẩn cấp thủ công">
-            <button class="btn btn-outline" type="submit" style="border-color:#ef4444;color:#ef4444">⏸️ Tạm dừng thủ công</button>
+            <button class="btn btn-outline" type="submit" style="border-color:#ef4444;color:var(--bad)">⏸️ Tạm dừng thủ công</button>
           </form>
           <%}%>
         </div>
@@ -688,7 +689,7 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             </select>
             <span class="held-selcount" id="heldSelCount">Đã chọn 0</span>
             <button type="button" class="btn btn-primary" id="heldBtnApprove" style="padding:5px 12px;font-size:12px" disabled onclick="heldBulk('approve')">✅ Duyệt đã chọn</button>
-            <button type="button" class="btn btn-outline" id="heldBtnReject" style="padding:5px 12px;font-size:12px;border-color:#ef4444;color:#ef4444" disabled onclick="heldBulk('reject')">❌ Từ chối đã chọn</button>
+            <button type="button" class="btn btn-outline" id="heldBtnReject" style="padding:5px 12px;font-size:12px;border-color:#ef4444;color:var(--bad)" disabled onclick="heldBulk('reject')">❌ Từ chối đã chọn</button>
           </div>
         </div>
         <div id="heldStatus" class="held-status" style="display:none"></div>
@@ -701,11 +702,11 @@ const sel = inp.replace('rgba(255,255,255,0.04)','var(--bg2)');
             <td><b><%=a.username%></b></td>
             <td style="font-size:12px"><%=a.task_name%></td>
             <td><%=a.reward_actual.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
-            <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='duplicate_ip'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🔁 Trùng IP với TK khác</span><%}else if(a.held_reason==='duplicate_device'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🔁 Trùng thiết bị với TK khác</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:#60a5fa">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:#a855f7">📶 Cần IP chất lượng</span><%}else if(a.held_reason==='vpn_proxy'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444">🛡️ VPN/Proxy<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else if(a.held_reason==='mobile_network'){%><span class="badge" style="background:rgba(251,146,60,0.15);color:#fb923c">📱 Mạng 4G/3G<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
+            <td><%if(a.held_reason==='breaker'){%><span class="badge badge-warning">⚡ Cầu dao</span><%}else if(a.held_reason==='duplicate_ip'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:var(--bad)">🔁 Trùng IP với TK khác</span><%}else if(a.held_reason==='duplicate_device'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:var(--bad)">🔁 Trùng thiết bị với TK khác</span><%}else if(a.held_reason==='referer'){%><span class="badge" style="background:rgba(96,165,250,0.15);color:var(--blue)">🔗 Nghi ngờ bypass link</span><%}else if(a.held_reason==='quality_ip'){%><span class="badge" style="background:rgba(168,85,247,0.15);color:var(--violet)">📶 Cần IP chất lượng</span><%}else if(a.held_reason==='vpn_proxy'){%><span class="badge" style="background:rgba(239,68,68,0.15);color:var(--bad)">🛡️ VPN/Proxy<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else if(a.held_reason==='mobile_network'){%><span class="badge" style="background:rgba(251,146,60,0.15);color:var(--orange)">📱 Mạng 4G/3G<%if(a.ip_isp){%> (<%=a.ip_isp%>)<%}%></span><%}else{%><span class="badge badge-danger">🕵️ Nghi vấn</span><%}%></td>
             <td style="font-size:11px;color:var(--text2);max-width:220px"><%=a.fraud_reason||'—'%></td>
             <td style="white-space:nowrap">
               <button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="heldReview('approve',['<%=a.id%>'])">✅ Duyệt</button>
-              <button type="button" class="btn btn-outline" style="padding:4px 10px;font-size:12px;border-color:#ef4444;color:#ef4444" onclick="heldReview('reject',['<%=a.id%>'])">❌ Từ chối</button>
+              <button type="button" class="btn btn-outline" style="padding:4px 10px;font-size:12px;border-color:#ef4444;color:var(--bad)" onclick="heldReview('reject',['<%=a.id%>'])">❌ Từ chối</button>
             </td>
           </tr>
           <%})%>

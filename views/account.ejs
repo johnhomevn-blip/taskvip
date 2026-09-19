@@ -2,6 +2,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Tài Khoản - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>"><link rel="stylesheet" href="/css/coins.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
 <%- include('partials/sidebar',{page:'account',user}) %><%- include('partials/popup') %>
@@ -27,7 +28,7 @@
       <div style="font-size:11px;color:var(--text2);margin-top:3px">Tổng <%=user.exp.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> EXP</div>
     </div>
     <div style="font-size:13px">
-      <%[['🪙 Ncoin',user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})+'N','#f59e0b'],['💎 Vcoin',user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})+'V','#60a5fa'],['📅 Tham gia',new Date(parseInt(user.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}),'var(--text)'],['🌐 IP đăng ký',user.reg_ip||'—','var(--text2)']].forEach(([label,val,color])=>{%>
+      <%[['🪙 Ncoin',user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})+'N','var(--warn)'],['💎 Vcoin',user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})+'V','var(--blue)'],['📅 Tham gia',new Date(parseInt(user.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}),'var(--text)'],['🌐 IP đăng ký',user.reg_ip||'—','var(--text2)']].forEach(([label,val,color])=>{%>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--card-border)">
         <span style="color:var(--text2)"><%=label%></span><b style="color:<%=color%>"><%=val%></b>
       </div>

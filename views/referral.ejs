@@ -2,6 +2,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Giới Thiệu - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>"><link rel="stylesheet" href="/css/coins.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
 <%- include('partials/sidebar',{page:'referral',user}) %><%- include('partials/popup') %>
@@ -12,7 +13,7 @@
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">🔗 Link giới thiệu của bạn</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <input id="refLinkInput" readonly value="<%=referralLink%>" style="flex:1;min-width:220px;padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);border-radius:10px;color:var(--text);font-size:13px">
+    <input id="refLinkInput" readonly value="<%=referralLink%>" style="flex:1;min-width:220px;padding:10px 13px;background:var(--fill);border:1px solid var(--card-border);border-radius:10px;color:var(--text);font-size:13px">
     <button class="btn btn-primary" onclick="copyRefLink()" id="copyBtn">📋 Copy link</button>
   </div>
   <div style="font-size:12px;color:var(--text2);margin-top:8px">Mã giới thiệu: <b style="color:var(--text)"><%=referralCode%></b> — chia sẻ link hoặc mã này, khi bạn bè đăng ký và làm nhiệm vụ, bạn sẽ nhận hoa hồng.</div>
@@ -24,11 +25,11 @@
     <div style="font-size:12px;color:var(--text2)">Tổng số đã giới thiệu</div>
   </div>
   <div class="card" style="text-align:center">
-    <div style="font-size:22px;font-weight:700;color:#f59e0b"><%=totalCommission.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>N</div>
+    <div style="font-size:22px;font-weight:700;color:var(--warn)"><%=totalCommission.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>N</div>
     <div style="font-size:12px;color:var(--text2)">Tổng hoa hồng đã nhận</div>
   </div>
   <div class="card" style="text-align:center">
-    <div style="font-size:22px;font-weight:700;color:#10b981"><%=currentRate%>%</div>
+    <div style="font-size:22px;font-weight:700;color:var(--ok)"><%=currentRate%>%</div>
     <div style="font-size:12px;color:var(--text2)">Tỷ lệ hoa hồng hiện tại (đã khóa vĩnh viễn)</div>
   </div>
 </div>
@@ -40,19 +41,19 @@
       <div style="font-size:20px">🔵</div>
       <div style="font-weight:700"><%=rates.r1%>%</div>
       <div style="font-size:11px;color:var(--text2)">1 - <%=thresholds.t2-1%> người</div>
-      <%if(tier>=1){%><div style="font-size:11px;color:#10b981;margin-top:4px">✅ Đã mở khóa</div><%}%>
+      <%if(tier>=1){%><div style="font-size:11px;color:var(--ok);margin-top:4px">✅ Đã mở khóa</div><%}%>
     </div>
     <div style="text-align:center;padding:12px;border-radius:12px;border:1px solid var(--card-border);<%=tier>=2?'background:rgba(16,185,129,0.1)':''%>">
       <div style="font-size:20px">🥈</div>
       <div style="font-weight:700"><%=rates.r2%>%</div>
       <div style="font-size:11px;color:var(--text2)"><%=thresholds.t2%> - <%=thresholds.t3-1%> người</div>
-      <%if(tier>=2){%><div style="font-size:11px;color:#10b981;margin-top:4px">✅ Đã mở khóa</div><%}else{%><div style="font-size:11px;color:var(--text2);margin-top:4px">🔒 Cần thêm <%=Math.max(0,thresholds.t2-totalReferred)%> người</div><%}%>
+      <%if(tier>=2){%><div style="font-size:11px;color:var(--ok);margin-top:4px">✅ Đã mở khóa</div><%}else{%><div style="font-size:11px;color:var(--text2);margin-top:4px">🔒 Cần thêm <%=Math.max(0,thresholds.t2-totalReferred)%> người</div><%}%>
     </div>
     <div style="text-align:center;padding:12px;border-radius:12px;border:1px solid var(--card-border);<%=tier>=3?'background:rgba(16,185,129,0.1)':''%>">
       <div style="font-size:20px">👑</div>
       <div style="font-weight:700"><%=rates.r3%>%</div>
       <div style="font-size:11px;color:var(--text2)">Từ <%=thresholds.t3%> người</div>
-      <%if(tier>=3){%><div style="font-size:11px;color:#10b981;margin-top:4px">✅ Đã mở khóa</div><%}else{%><div style="font-size:11px;color:var(--text2);margin-top:4px">🔒 Cần thêm <%=Math.max(0,thresholds.t3-totalReferred)%> người</div><%}%>
+      <%if(tier>=3){%><div style="font-size:11px;color:var(--ok);margin-top:4px">✅ Đã mở khóa</div><%}else{%><div style="font-size:11px;color:var(--text2);margin-top:4px">🔒 Cần thêm <%=Math.max(0,thresholds.t3-totalReferred)%> người</div><%}%>
     </div>
   </div>
   <div style="font-size:11px;color:var(--text2);margin-top:10px">⚠️ Khi đã đạt 1 bậc, tỷ lệ hoa hồng được giữ nguyên vĩnh viễn cho bạn dù sau này số người giới thiệu thay đổi.</div>
@@ -66,7 +67,7 @@
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">🎁 Phần thưởng top giới thiệu tháng</div>
   <div class="grid3">
-    <%[['🥇',rewards.r1,'rgba(245,158,11,0.1)','rgba(245,158,11,0.2)','#fbbf24','Hạng 1'],['🥈',rewards.r2,'rgba(156,163,175,0.1)','rgba(156,163,175,0.2)','#d1d5db','Hạng 2'],['🥉',rewards.r3,'rgba(180,83,9,0.1)','rgba(180,83,9,0.2)','#d97706','Hạng 3']].forEach(([icon,val,bg,border,color,label])=>{%>
+    <%[['🥇',rewards.r1,'rgba(245,158,11,0.1)','rgba(245,158,11,0.2)','var(--gold)','Hạng 1'],['🥈',rewards.r2,'rgba(156,163,175,0.1)','rgba(156,163,175,0.2)','var(--silver)','Hạng 2'],['🥉',rewards.r3,'rgba(180,83,9,0.1)','rgba(180,83,9,0.2)','var(--bronze)','Hạng 3']].forEach(([icon,val,bg,border,color,label])=>{%>
     <div style="text-align:center;padding:12px;background:<%=bg%>;border-radius:12px;border:1px solid <%=border%>">
       <div style="font-size:24px"><%=icon%></div>
       <div style="font-weight:700;color:<%=color%>"><%=(val||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>đ</div>

@@ -2,6 +2,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Lịch sử IP - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
 <%- include('partials/sidebar',{page:'admin',user}) %>
@@ -29,7 +30,7 @@
           <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.first_seen)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
           <td style="font-size:12px;color:var(--text2)"><%=new Date(parseInt(ip.last_seen)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
           <td><%=ip.attempts%></td>
-          <td style="color:#10b981"><%=ip.completed%></td>
+          <td style="color:var(--ok)"><%=ip.completed%></td>
           <td>
             <%if(parseInt(ip.other_accounts)>0){%>
             <span class="badge badge-danger">⚠️ <%=ip.other_accounts%> tài khoản khác</span>

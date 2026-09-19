@@ -2,6 +2,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Rút Tiền - 4ummo</title>
+<%- include('partials/theme-head') %>
 <link rel="stylesheet" href="/css/style.css?v=<%=assetVersion%>"><link rel="stylesheet" href="/css/coins.css?v=<%=assetVersion%>">
 <script src="/js/menu.js?v=<%=assetVersion%>" defer></script></head><body>
 <%- include('partials/sidebar',{page:'wallet',user}) %><%- include('partials/popup') %>
@@ -16,16 +17,16 @@
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
   <div style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(124,58,237,0.15));border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:16px">
     <div style="font-size:12px;color:var(--text2)"><span class="ni sm">N</span> Ncoin đổi thưởng</div>
-    <div style="font-size:26px;font-weight:800;color:#f59e0b;display:flex;align-items:center;gap:6px"><span class="ni">N</span><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+    <div style="font-size:26px;font-weight:800;color:var(--warn);display:flex;align-items:center;gap:6px"><span class="ni">N</span><%=user.ncoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
   </div>
   <div style="background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(124,58,237,0.15));border:1px solid rgba(96,165,250,0.2);border-radius:14px;padding:16px">
     <div style="font-size:12px;color:var(--text2)"><span class="vi sm">V</span> Vcoin đã mở khóa</div>
-    <div style="font-size:26px;font-weight:800;color:#60a5fa;display:flex;align-items:center;gap:6px"><span class="vi">V</span><%=vcoinUnlocked.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
+    <div style="font-size:26px;font-weight:800;color:var(--blue);display:flex;align-items:center;gap:6px"><span class="vi">V</span><%=vcoinUnlocked.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></div>
     <div style="font-size:11px;color:var(--text2);margin-top:2px">Tổng Vcoin: <%=user.vcoin.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>V (chờ 28 ngày để mở)</div>
   </div>
 </div>
 
-<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#f59e0b">
+<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--warn)">
   💡 Phí rút theo cấp độ hiện tại: <span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:20px;background:<%=tierTag.bg%>;color:#fff;font-weight:600;font-size:12px"><%=tierTag.emoji%> <%=tierLabel%></span> — <b><%=currentFee.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>đ</b> mỗi lần rút (phí cộng thêm vào số coin bị trừ, bạn vẫn nhận đủ số tiền đã nhập)
   · Ưu tiên trừ Ncoin trước, hết mới trừ Vcoin đã mở khóa
   · Ví dụ: rút 10.000đ, phí <%=currentFee.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%>đ → cần có <b>đủ <%=(10000+currentFee).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</b> trong ví mới rút được
@@ -74,8 +75,8 @@
     <tr>
       <td style="color:var(--text2);font-size:12px"><%=new Date(parseInt(h.created_at)).toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
       <td><span class="coin-wrap"><span class="ni sm">N</span><%=h.amount.toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></span></td>
-      <td style="color:#ef4444;font-size:12px">+<%=(h.fee||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
-      <td style="color:#10b981;font-weight:600"><%=(h.amount+(h.fee||0)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</td>
+      <td style="color:var(--bad);font-size:12px">+<%=(h.fee||0).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%></td>
+      <td style="color:var(--ok);font-weight:600"><%=(h.amount+(h.fee||0)).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'})%> coin</td>
       <td><%=h.method%></td>
       <td><%if(h.status==='approved'){%><span class="badge badge-success">✅ Duyệt</span><%}else if(h.status==='rejected'){%><span class="badge badge-danger">❌ Từ chối</span><%}else{%><span class="badge badge-warning">⏳ Chờ</span><%}%></td>
     </tr>
